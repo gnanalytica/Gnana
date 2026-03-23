@@ -1,10 +1,5 @@
-# fly.toml app configuration file generated for gnana-dashboard on 2026-03-23T21:06:39Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
-app = 'gnana-dashboard'
-primary_region = 'iad'
+app = 'gnana'
+primary_region = 'ams'
 
 [build]
 
@@ -17,7 +12,6 @@ primary_region = 'iad'
   processes = ['app']
 
 [[vm]]
-  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 1024
+  memory_mb = 512
