@@ -8,7 +8,7 @@ import { ConnectorCard } from "@/components/connectors/connector-card";
 import { useConnectors } from "@/lib/hooks/use-connectors";
 
 export default function ConnectorsPage() {
-  const { connectors, isLoading, error } = useConnectors();
+  const { connectors, isLoading, error, deleteConnector, testConnector } = useConnectors();
 
   if (error) {
     return (
@@ -38,9 +38,11 @@ export default function ConnectorsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Connectors</h1>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Plus className="h-4 w-4" />
-            Add MCP Server
+          <Button variant="outline" asChild>
+            <Link href="/connectors/store">
+              <Plus className="h-4 w-4" />
+              Add MCP Server
+            </Link>
           </Button>
           <Button asChild>
             <Link href="/connectors/store">
@@ -60,7 +62,12 @@ export default function ConnectorsPage() {
       connectors.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {connectors.map((connector) => (
-            <ConnectorCard key={connector.id} connector={connector} />
+            <ConnectorCard
+              key={connector.id}
+              connector={connector}
+              onTest={testConnector}
+              onDelete={deleteConnector}
+            />
           ))}
         </div>
       ) : (

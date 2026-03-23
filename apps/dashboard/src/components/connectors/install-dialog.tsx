@@ -1,10 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -13,26 +20,180 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
+export interface InstallDialogApp {
+  id: string;
+  name: string;
+  authType: "oauth" | "api_key" | "mcp";
+}
+
 interface InstallDialogProps {
-  app: { name: string; type: "oauth" | "api_key" | "mcp" } | null;
+  app: InstallDialogApp | null;
   isOpen: boolean;
   onClose: () => void;
-  onInstall: () => void;
+  onInstall: (data: {
+    type: string;
+    name: string;
+    authType: string;
+    credentials: Record<string, unknown>;
+    config: Record<string, unknown>;
+  }) => Promise<void>;
 }
 
 export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialogProps) {
-  const [value, setValue] = useState("");
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleConnect = () => {
-    setSuccess(true);
-    onInstall();
+  // GitHub fields
+  const [ghToken, setGhToken] = useState("");
+  const [ghOwner, setGhOwner] = useState("");
+
+  // Slack fields
+  const [slackToken, setSlackToken] = useState("");
+
+  // HTTP API fields
+  const [httpBaseUrl, setHttpBaseUrl] = useState("");
+  const [httpAuthType, setHttpAuthType] = useState("none");
+  const [httpToken, setHttpToken] = useState("");
+  const [httpHeaderName, setHttpHeaderName] = useState("");
+  const [httpUsername, setHttpUsername] = useState("");
+  const [httpPassword, setHttpPassword] = useState("");
+
+  // PostgreSQL fields
+  const [pgConnectionString, setPgConnectionString] = useState("");
+
+  // MCP fields
+  const [mcpTransport, setMcpTransport] = useState("http");
+  const [mcpUrl, setMcpUrl] = useState("");
+
+  const resetForm = () => {
+    setSuccess(false);
+    setError(null);
+    setIsSubmitting(false);
+    setGhToken("");
+    setGhOwner("");
+    setSlackToken("");
+    setHttpBaseUrl("");
+    setHttpAuthType("none");
+    setHttpToken("");
+    setHttpHeaderName("");
+    setHttpUsername("");
+    setHttpPassword("");
+    setPgConnectionString("");
+    setMcpTransport("http");
+    setMcpUrl("");
   };
 
   const handleClose = () => {
-    setValue("");
-    setSuccess(false);
+    resetForm();
     onClose();
+  };
+
+  const buildPayload = () => {
+    if (!app) return null;
+
+    switch (app.id) {
+      case "github":
+        return {
+          type: "github",
+          name: "GitHub",
+          authType: "oauth",
+          credentials: { token: ghToken },
+          config: ghOwner ? { defaultOwner: ghOwner } : {},
+        };
+      case "slack":
+        return {
+          type: "slack",
+          name: "Slack",
+          authType: "oauth",
+          credentials: { token: slackToken },
+          config: {},
+        };
+      case "http-api":
+        return {
+          type: "http",
+          name: "HTTP API",
+          authType: "api_key",
+          credentials: buildHttpCredentials(),
+          config: { baseUrl: httpBaseUrl },
+        };
+      case "postgres":
+        return {
+          type: "postgres",
+          name: "PostgreSQL",
+          authType: "api_key",
+          credentials: { connectionString: pgConnectionString },
+          config: {},
+        };
+      case "mcp-server":
+        return {
+          type: "mcp",
+          name: "MCP Server",
+          authType: "mcp",
+          credentials: {},
+          config: {
+            transport: mcpTransport,
+            url: mcpUrl,
+          },
+        };
+      default:
+        return null;
+    }
+  };
+
+  const buildHttpCredentials = (): Record<string, unknown> => {
+    switch (httpAuthType) {
+      case "bearer":
+        return { authType: "bearer", token: httpToken };
+      case "api_key":
+        return { authType: "api_key", headerName: httpHeaderName, token: httpToken };
+      case "basic":
+        return { authType: "basic", username: httpUsername, password: httpPassword };
+      default:
+        return { authType: "none" };
+    }
+  };
+
+  const handleConnect = async () => {
+    const payload = buildPayload();
+    if (!payload) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await onInstall(payload);
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create connector");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isFormValid = (): boolean => {
+    if (!app) return false;
+
+    switch (app.id) {
+      case "github":
+        return ghToken.trim().length > 0;
+      case "slack":
+        return slackToken.trim().length > 0;
+      case "http-api": {
+        if (!httpBaseUrl.trim()) return false;
+        if (httpAuthType === "bearer" || httpAuthType === "api_key")
+          return httpToken.trim().length > 0;
+        if (httpAuthType === "basic")
+          return httpUsername.trim().length > 0 && httpPassword.trim().length > 0;
+        return true;
+      }
+      case "postgres":
+        return pgConnectionString.trim().length > 0;
+      case "mcp-server":
+        return mcpUrl.trim().length > 0;
+      default:
+        return false;
+    }
   };
 
   if (!app) return null;
@@ -43,11 +204,17 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
         <DialogHeader>
           <DialogTitle>Connect {app.name}</DialogTitle>
           <DialogDescription>
-            {app.type === "oauth"
-              ? `Authorize ${app.name} to connect with your workspace.`
-              : app.type === "api_key"
-                ? `Enter your ${app.name} credentials to connect.`
-                : "Enter the MCP server URL or command."}
+            {app.id === "github"
+              ? "Enter a personal access token to connect GitHub."
+              : app.id === "slack"
+                ? "Enter a Slack bot token to connect your workspace."
+                : app.id === "http-api"
+                  ? "Configure a REST API connection."
+                  : app.id === "postgres"
+                    ? "Enter your PostgreSQL connection string."
+                    : app.id === "mcp-server"
+                      ? "Enter the MCP server URL or command."
+                      : `Connect ${app.name} to your workspace.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -61,46 +228,197 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
           </div>
         ) : (
           <div className="space-y-4">
-            {app.type === "oauth" && (
-              <Button onClick={handleConnect} className="w-full">
-                Connect with {app.name}
-              </Button>
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
             )}
 
-            {app.type === "api_key" && (
+            {/* GitHub Fields */}
+            {app.id === "github" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="api-key">API Key</Label>
+                  <Label htmlFor="gh-token">Personal Access Token</Label>
                   <Input
-                    id="api-key"
+                    id="gh-token"
                     type="password"
-                    placeholder="Enter your API key"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="ghp_..."
+                    value={ghToken}
+                    onChange={(e) => setGhToken(e.target.value)}
                   />
                 </div>
-                <Button onClick={handleConnect} className="w-full" disabled={!value.trim()}>
-                  Connect
-                </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="gh-owner">Default Owner (optional)</Label>
+                  <Input
+                    id="gh-owner"
+                    placeholder="Organization or username"
+                    value={ghOwner}
+                    onChange={(e) => setGhOwner(e.target.value)}
+                  />
+                </div>
               </>
             )}
 
-            {app.type === "mcp" && (
+            {/* Slack Fields */}
+            {app.id === "slack" && (
+              <div className="space-y-2">
+                <Label htmlFor="slack-token">Bot Token</Label>
+                <Input
+                  id="slack-token"
+                  type="password"
+                  placeholder="xoxb-..."
+                  value={slackToken}
+                  onChange={(e) => setSlackToken(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* HTTP API Fields */}
+            {app.id === "http-api" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="mcp-url">URL or Command</Label>
+                  <Label htmlFor="http-base-url">Base URL</Label>
+                  <Input
+                    id="http-base-url"
+                    placeholder="https://api.example.com"
+                    value={httpBaseUrl}
+                    onChange={(e) => setHttpBaseUrl(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Auth Type</Label>
+                  <Select value={httpAuthType} onValueChange={setHttpAuthType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="bearer">Bearer Token</SelectItem>
+                      <SelectItem value="api_key">API Key</SelectItem>
+                      <SelectItem value="basic">Basic Auth</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {httpAuthType === "bearer" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="http-bearer-token">Bearer Token</Label>
+                    <Input
+                      id="http-bearer-token"
+                      type="password"
+                      placeholder="Enter bearer token"
+                      value={httpToken}
+                      onChange={(e) => setHttpToken(e.target.value)}
+                    />
+                  </div>
+                )}
+                {httpAuthType === "api_key" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="http-header-name">Header Name</Label>
+                      <Input
+                        id="http-header-name"
+                        placeholder="X-API-Key"
+                        value={httpHeaderName}
+                        onChange={(e) => setHttpHeaderName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="http-api-key">API Key</Label>
+                      <Input
+                        id="http-api-key"
+                        type="password"
+                        placeholder="Enter API key"
+                        value={httpToken}
+                        onChange={(e) => setHttpToken(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+                {httpAuthType === "basic" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="http-username">Username</Label>
+                      <Input
+                        id="http-username"
+                        placeholder="Username"
+                        value={httpUsername}
+                        onChange={(e) => setHttpUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="http-password">Password</Label>
+                      <Input
+                        id="http-password"
+                        type="password"
+                        placeholder="Password"
+                        value={httpPassword}
+                        onChange={(e) => setHttpPassword(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* PostgreSQL Fields */}
+            {app.id === "postgres" && (
+              <div className="space-y-2">
+                <Label htmlFor="pg-connection">Connection String</Label>
+                <Input
+                  id="pg-connection"
+                  type="password"
+                  placeholder="postgresql://user:pass@host:5432/db"
+                  value={pgConnectionString}
+                  onChange={(e) => setPgConnectionString(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* MCP Server Fields */}
+            {app.id === "mcp-server" && (
+              <>
+                <div className="space-y-2">
+                  <Label>Transport</Label>
+                  <Select value={mcpTransport} onValueChange={setMcpTransport}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="http">HTTP</SelectItem>
+                      <SelectItem value="stdio">Stdio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mcp-url">{mcpTransport === "http" ? "URL" : "Command"}</Label>
                   <Input
                     id="mcp-url"
-                    placeholder="https://... or npx @company/mcp-server"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={
+                      mcpTransport === "http"
+                        ? "https://mcp-server.example.com"
+                        : "npx @company/mcp-server"
+                    }
+                    value={mcpUrl}
+                    onChange={(e) => setMcpUrl(e.target.value)}
                   />
                 </div>
-                <Button onClick={handleConnect} className="w-full" disabled={!value.trim()}>
-                  Connect
-                </Button>
               </>
             )}
+
+            <Button
+              onClick={handleConnect}
+              className="w-full"
+              disabled={!isFormValid() || isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                "Connect"
+              )}
+            </Button>
           </div>
         )}
       </DialogContent>

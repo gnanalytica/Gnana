@@ -13,6 +13,9 @@ const categoryColors: Record<string, string> = {
   Custom: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
 };
 
+/** The set of connector IDs that have real implementations. */
+const IMPLEMENTED_CONNECTORS = new Set(["github", "slack", "http-api", "postgres", "mcp-server"]);
+
 export interface AppInfo {
   id: string;
   name: string;
@@ -20,15 +23,30 @@ export interface AppInfo {
   category: string;
   description: string;
   authType: "oauth" | "api_key" | "mcp";
-  installed: boolean;
 }
 
 interface AppCardProps {
   app: AppInfo;
+  installedConnectorTypes: Set<string>;
   onInstall: (app: AppInfo) => void;
 }
 
-export function AppCard({ app, onInstall }: AppCardProps) {
+/** Map app store IDs to the connector `type` values returned by the API. */
+function appIdToConnectorType(appId: string): string {
+  switch (appId) {
+    case "http-api":
+      return "http";
+    case "mcp-server":
+      return "mcp";
+    default:
+      return appId;
+  }
+}
+
+export function AppCard({ app, installedConnectorTypes, onInstall }: AppCardProps) {
+  const isImplemented = IMPLEMENTED_CONNECTORS.has(app.id);
+  const isInstalled = installedConnectorTypes.has(appIdToConnectorType(app.id));
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -47,9 +65,13 @@ export function AppCard({ app, onInstall }: AppCardProps) {
             <p className="text-xs text-muted-foreground mt-1 truncate">{app.description}</p>
           </div>
           <div className="shrink-0">
-            {app.installed ? (
+            {isInstalled ? (
               <Badge variant="secondary" className="text-xs">
                 Connected
+              </Badge>
+            ) : !isImplemented ? (
+              <Badge variant="outline" className="text-xs text-muted-foreground">
+                Coming Soon
               </Badge>
             ) : (
               <Button size="sm" onClick={() => onInstall(app)}>

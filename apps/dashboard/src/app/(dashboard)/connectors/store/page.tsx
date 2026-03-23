@@ -5,7 +5,8 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppCard, type AppInfo } from "@/components/connectors/app-card";
-import { InstallDialog } from "@/components/connectors/install-dialog";
+import { InstallDialog, type InstallDialogApp } from "@/components/connectors/install-dialog";
+import { useConnectors } from "@/lib/hooks/use-connectors";
 
 const apps: AppInfo[] = [
   {
@@ -15,7 +16,6 @@ const apps: AppInfo[] = [
     category: "Development",
     description: "Issues, PRs, code search, commits",
     authType: "oauth",
-    installed: true,
   },
   {
     id: "slack",
@@ -24,7 +24,6 @@ const apps: AppInfo[] = [
     category: "Communication",
     description: "Messages, channels, threads",
     authType: "oauth",
-    installed: true,
   },
   {
     id: "notion",
@@ -33,7 +32,6 @@ const apps: AppInfo[] = [
     category: "Productivity",
     description: "Pages, databases, blocks",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "hubspot",
@@ -42,7 +40,6 @@ const apps: AppInfo[] = [
     category: "CRM",
     description: "Contacts, deals, companies",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "jira",
@@ -51,7 +48,6 @@ const apps: AppInfo[] = [
     category: "Development",
     description: "Issues, sprints, boards",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "linear",
@@ -60,7 +56,6 @@ const apps: AppInfo[] = [
     category: "Development",
     description: "Issues, projects, cycles",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "google-workspace",
@@ -69,7 +64,6 @@ const apps: AppInfo[] = [
     category: "Productivity",
     description: "Gmail, Drive, Calendar, Sheets",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "salesforce",
@@ -78,7 +72,6 @@ const apps: AppInfo[] = [
     category: "CRM",
     description: "Leads, opportunities, accounts",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "postgres",
@@ -87,7 +80,6 @@ const apps: AppInfo[] = [
     category: "Database",
     description: "Query, tables, schema inspection",
     authType: "api_key",
-    installed: true,
   },
   {
     id: "mysql",
@@ -96,7 +88,6 @@ const apps: AppInfo[] = [
     category: "Database",
     description: "Query, tables, schema",
     authType: "api_key",
-    installed: false,
   },
   {
     id: "mongodb",
@@ -105,7 +96,6 @@ const apps: AppInfo[] = [
     category: "Database",
     description: "Collections, documents, aggregation",
     authType: "api_key",
-    installed: false,
   },
   {
     id: "discord",
@@ -114,7 +104,6 @@ const apps: AppInfo[] = [
     category: "Communication",
     description: "Messages, channels, roles",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "teams",
@@ -123,7 +112,6 @@ const apps: AppInfo[] = [
     category: "Communication",
     description: "Chat, channels, meetings",
     authType: "oauth",
-    installed: false,
   },
   {
     id: "airtable",
@@ -132,7 +120,6 @@ const apps: AppInfo[] = [
     category: "Productivity",
     description: "Bases, tables, records",
     authType: "api_key",
-    installed: false,
   },
   {
     id: "http-api",
@@ -141,7 +128,6 @@ const apps: AppInfo[] = [
     category: "Custom",
     description: "Connect any REST API endpoint",
     authType: "api_key",
-    installed: true,
   },
   {
     id: "mcp-server",
@@ -150,7 +136,6 @@ const apps: AppInfo[] = [
     category: "Custom",
     description: "Connect a Model Context Protocol server",
     authType: "mcp",
-    installed: false,
   },
 ];
 
@@ -167,7 +152,14 @@ const categories = [
 export default function AppStorePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const [installApp, setInstallApp] = useState<AppInfo | null>(null);
+  const [installApp, setInstallApp] = useState<InstallDialogApp | null>(null);
+
+  const { connectors, createConnector, refetch } = useConnectors();
+
+  /** Set of connector types currently installed (uses the API `type` field). */
+  const installedTypes = useMemo(() => {
+    return new Set(connectors.filter((c) => c.enabled).map((c) => c.type));
+  }, [connectors]);
 
   const filteredApps = useMemo(() => {
     let result = apps;
@@ -183,6 +175,17 @@ export default function AppStorePage() {
     }
     return result;
   }, [search, category]);
+
+  const handleInstall = async (data: {
+    type: string;
+    name: string;
+    authType: string;
+    credentials: Record<string, unknown>;
+    config: Record<string, unknown>;
+  }) => {
+    await createConnector(data);
+    await refetch();
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -215,7 +218,12 @@ export default function AppStorePage() {
       {filteredApps.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filteredApps.map((app) => (
-            <AppCard key={app.id} app={app} onInstall={setInstallApp} />
+            <AppCard
+              key={app.id}
+              app={app}
+              installedConnectorTypes={installedTypes}
+              onInstall={(a) => setInstallApp({ id: a.id, name: a.name, authType: a.authType })}
+            />
           ))}
         </div>
       ) : (
@@ -226,10 +234,10 @@ export default function AppStorePage() {
 
       {/* Install Dialog */}
       <InstallDialog
-        app={installApp ? { name: installApp.name, type: installApp.authType } : null}
+        app={installApp}
         isOpen={!!installApp}
         onClose={() => setInstallApp(null)}
-        onInstall={() => {}}
+        onInstall={handleInstall}
       />
     </div>
   );

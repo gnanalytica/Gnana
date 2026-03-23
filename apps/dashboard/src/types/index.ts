@@ -78,11 +78,15 @@ export interface Artifact {
 
 export interface Connector {
   id: string;
+  workspaceId: string;
   type: string;
   name: string;
-  status: "active" | "disconnected" | "error";
-  toolCount: number;
+  authType: string;
+  credentials: Record<string, unknown> | null;
+  config: Record<string, unknown>;
+  enabled: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Provider {
