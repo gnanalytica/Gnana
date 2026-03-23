@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "drizzle-kit": "^0.30.0",
-    "tsup": "workspace:*",
-    "typescript": "workspace:*"
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0"
   }
 }

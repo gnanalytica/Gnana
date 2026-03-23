@@ -121,13 +121,16 @@ export class AnthropicProvider implements LLMProvider {
       if (block.type === "text") {
         return { type: "text", text: block.text };
       }
-      // tool_use
-      return {
-        type: "tool_use",
-        id: block.id,
-        name: block.name,
-        input: block.input as Record<string, unknown>,
-      };
+      if (block.type === "tool_use") {
+        return {
+          type: "tool_use" as const,
+          id: block.id,
+          name: block.name,
+          input: block.input as Record<string, unknown>,
+        };
+      }
+      // thinking/redacted_thinking blocks — skip
+      return { type: "text" as const, text: "" };
     });
 
     return {

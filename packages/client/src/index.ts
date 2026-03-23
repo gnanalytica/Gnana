@@ -62,7 +62,7 @@ class AgentsAPI {
 
   async list(): Promise<unknown[]> {
     const res = await this.client.fetch("/api/agents");
-    return res.json();
+    return res.json() as Promise<unknown[]>;
   }
 
   async get(id: string): Promise<unknown> {
@@ -99,7 +99,7 @@ class RunsAPI {
   async list(options?: { limit?: number }): Promise<unknown[]> {
     const params = options?.limit ? `?limit=${options.limit}` : "";
     const res = await this.client.fetch(`/api/runs${params}`);
-    return res.json();
+    return res.json() as Promise<unknown[]>;
   }
 
   async get(id: string): Promise<unknown> {
@@ -144,7 +144,7 @@ class RunsAPI {
 
   async logs(id: string): Promise<unknown[]> {
     const res = await this.client.fetch(`/api/runs/${id}/logs`);
-    return res.json();
+    return res.json() as Promise<unknown[]>;
   }
 
   subscribe(runId: string, handler: (update: unknown) => void): () => void {
@@ -167,7 +167,7 @@ class ConnectorsAPI {
 
   async list(): Promise<unknown[]> {
     const res = await this.client.fetch("/api/connectors");
-    return res.json();
+    return res.json() as Promise<unknown[]>;
   }
 
   async get(id: string): Promise<unknown> {
@@ -189,7 +189,7 @@ class ConnectorsAPI {
 
   async tools(id: string): Promise<unknown[]> {
     const res = await this.client.fetch(`/api/connectors/${id}/tools`);
-    return res.json();
+    return res.json() as Promise<unknown[]>;
   }
 
   async test(id: string): Promise<unknown> {

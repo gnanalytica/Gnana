@@ -19,7 +19,7 @@
     "@gnana/provider-base": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "workspace:*",
-    "typescript": "workspace:*"
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0"
   }
 }
