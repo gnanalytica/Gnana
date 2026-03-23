@@ -46,6 +46,10 @@ const config: Config = {
           plan: "#34d399",
           approve: "#f59e0b",
           execute: "#f472b6",
+          loop: "#fbbf24",
+          parallel: "#22d3ee",
+          merge: "#2dd4bf",
+          transform: "#fb923c",
         },
         status: {
           completed: "#22c55e",

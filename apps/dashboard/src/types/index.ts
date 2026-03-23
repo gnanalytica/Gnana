@@ -9,6 +9,10 @@ export interface Agent {
     planning: { provider: string; model: string; maxTokens?: number; temperature?: number };
     execution?: { provider: string; model: string; maxTokens?: number; temperature?: number };
   };
+  pipelineConfig?: {
+    nodes: import("./pipeline").NodeSpec[];
+    edges: import("./pipeline").EdgeSpec[];
+  };
   triggersConfig: Array<{ type: string; config?: Record<string, unknown> }>;
   approval: "required" | "auto" | "conditional";
   maxToolRounds?: number;

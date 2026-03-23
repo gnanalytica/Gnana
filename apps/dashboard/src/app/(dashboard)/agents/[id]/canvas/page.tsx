@@ -1,9 +1,9 @@
-import { PipelineCanvas } from "@/components/canvas/pipeline-canvas";
+import { SplitCanvas } from "@/components/canvas/split-canvas";
 
 export default function CanvasPage() {
   return (
     <div className="h-screen w-full">
-      <PipelineCanvas />
+      <SplitCanvas />
     </div>
   );
 }

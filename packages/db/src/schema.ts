@@ -34,6 +34,7 @@ export const agents = pgTable("agents", {
   systemPrompt: text("system_prompt").notNull(),
   toolsConfig: jsonb("tools_config").notNull().default("{}"),
   llmConfig: jsonb("llm_config").notNull(),
+  pipelineConfig: jsonb("pipeline_config").default("{}"),
   triggersConfig: jsonb("triggers_config").notNull().default("[]"),
   approval: text("approval").notNull().default("required"),
   maxToolRounds: integer("max_tool_rounds").default(10),

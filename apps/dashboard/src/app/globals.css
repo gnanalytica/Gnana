@@ -30,6 +30,10 @@
     --phase-plan: #34d399;
     --phase-approve: #f59e0b;
     --phase-execute: #f472b6;
+    --phase-loop: #fbbf24;
+    --phase-parallel: #22d3ee;
+    --phase-merge: #2dd4bf;
+    --phase-transform: #fb923c;
   }
 
   .dark {
@@ -58,6 +62,10 @@
     --phase-plan: #34d399;
     --phase-approve: #f59e0b;
     --phase-execute: #f472b6;
+    --phase-loop: #fbbf24;
+    --phase-parallel: #22d3ee;
+    --phase-merge: #2dd4bf;
+    --phase-transform: #fb923c;
   }
 }
 
