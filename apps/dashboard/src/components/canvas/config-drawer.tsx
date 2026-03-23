@@ -49,7 +49,7 @@ export function ConfigDrawer({ isOpen, onClose, node, onUpdate, onDelete }: Conf
         </SheetHeader>
         <div className="space-y-4 mt-4">
           {/* LLM node config */}
-          {d.phase && (
+          {typeof d.phase === "string" && (
             <>
               <div>
                 <Label>Model</Label>

@@ -89,7 +89,7 @@ export function useRunStream(runId: string | null) {
   const connect = useCallback(() => {
     if (!runId) return;
 
-    const unsubscribe = api.runs.subscribe(runId, (update) => {
+    const unsubscribe = api.runs.subscribe(runId, (update: unknown) => {
       setEvents((prev) => [...prev, update as RunStreamEvent]);
     });
 
