@@ -5,12 +5,23 @@ import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import bcrypt from "bcryptjs";
-import { createDatabase, users } from "@gnana/db";
+import {
+  createDatabase,
+  users,
+  accounts,
+  sessions,
+  verificationTokens,
+} from "@gnana/db";
 
 const db = createDatabase(process.env.DATABASE_URL!);
 
 const nextAuth: NextAuthResult = NextAuth({
-  adapter: DrizzleAdapter(db),
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    sessionsTable: sessions,
+    verificationTokensTable: verificationTokens,
+  }),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
