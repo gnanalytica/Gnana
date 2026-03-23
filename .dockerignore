@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+.env
+.env.local
+.env*.local
+.DS_Store
+*.log
+.git/
+.github/
+docs/
+.claude/
+CLAUDE.md
+README.md
+.prettierrc
