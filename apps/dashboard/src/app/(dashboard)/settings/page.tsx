@@ -23,9 +23,7 @@ export default function SettingsPage() {
     <div className="p-8 max-w-2xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your workspace preferences.
-        </p>
+        <p className="text-muted-foreground mt-1">Manage your workspace preferences.</p>
       </div>
 
       <Separator />

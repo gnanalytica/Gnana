@@ -29,7 +29,7 @@ export function ThemeToggle({ isCollapsed }: { isCollapsed: boolean }) {
       onClick={cycleTheme}
       className={cn(
         "flex items-center gap-3 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-accent-foreground",
-        isCollapsed ? "justify-center w-10 h-10" : "px-3 py-2"
+        isCollapsed ? "justify-center w-10 h-10" : "px-3 py-2",
       )}
       aria-label={`Current theme: ${currentTheme}. Click to cycle.`}
     >

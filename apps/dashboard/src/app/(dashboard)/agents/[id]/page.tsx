@@ -6,29 +6,18 @@ import { Pencil, Palette, Play, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAgent } from "@/lib/hooks/use-agents";
 import { api } from "@/lib/api";
 
 const approvalBadgeClasses: Record<string, string> = {
-  required:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  required: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
   auto: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  conditional:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  conditional: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
 };
 
-export default function AgentDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { agent, isLoading, error } = useAgent(id);
   const [runTriggering, setRunTriggering] = useState(false);
@@ -44,9 +33,7 @@ export default function AgentDetailPage({
       setRunSuccess(true);
       setTimeout(() => setRunSuccess(false), 3000);
     } catch (err) {
-      setRunError(
-        err instanceof Error ? err.message : "Failed to trigger run"
-      );
+      setRunError(err instanceof Error ? err.message : "Failed to trigger run");
     } finally {
       setRunTriggering(false);
     }
@@ -67,9 +54,7 @@ export default function AgentDetailPage({
           <CardContent className="flex items-center gap-3 py-8">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <div>
-              <p className="font-medium text-destructive">
-                Cannot connect to server
-              </p>
+              <p className="font-medium text-destructive">Cannot connect to server</p>
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           </CardContent>
@@ -85,9 +70,7 @@ export default function AgentDetailPage({
     return (
       <div className="p-8">
         <h1 className="text-2xl font-bold">Agent not found</h1>
-        <p className="text-muted-foreground mt-2">
-          No agent with ID &ldquo;{id}&rdquo; exists.
-        </p>
+        <p className="text-muted-foreground mt-2">No agent with ID &ldquo;{id}&rdquo; exists.</p>
         <Button asChild className="mt-4" variant="secondary">
           <Link href="/agents">Back to Agents</Link>
         </Button>
@@ -146,12 +129,8 @@ export default function AgentDetailPage({
           <Play className="h-4 w-4" />
           {runTriggering ? "Triggering..." : "Run Now"}
         </Button>
-        {runSuccess && (
-          <span className="text-sm text-green-600">Run triggered!</span>
-        )}
-        {runError && (
-          <span className="text-sm text-destructive">{runError}</span>
-        )}
+        {runSuccess && <span className="text-sm text-green-600">Run triggered!</span>}
+        {runError && <span className="text-sm text-destructive">{runError}</span>}
       </div>
 
       <Separator />
@@ -168,9 +147,7 @@ export default function AgentDetailPage({
         <TabsContent value="overview" className="space-y-6 mt-6">
           {/* System Prompt */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              System Prompt
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground">System Prompt</h3>
             <div className="rounded-lg border p-4 font-mono text-sm whitespace-pre-wrap bg-muted/50">
               {agent.systemPrompt}
             </div>
@@ -178,18 +155,14 @@ export default function AgentDetailPage({
 
           {/* Model Config */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Model Configuration
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Model Configuration</h3>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-2 font-medium">Stage</th>
                     <th className="text-left px-4 py-2 font-medium">Model</th>
-                    <th className="text-left px-4 py-2 font-medium">
-                      Provider
-                    </th>
+                    <th className="text-left px-4 py-2 font-medium">Provider</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -221,9 +194,7 @@ export default function AgentDetailPage({
 
           {/* Triggers */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Triggers
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Triggers</h3>
             <div className="flex flex-wrap gap-2">
               {triggerTypes.map((type) => (
                 <Badge key={type} variant="outline">
@@ -235,9 +206,7 @@ export default function AgentDetailPage({
 
           {/* Approval Mode */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Approval Mode
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Approval Mode</h3>
             <Badge
               variant="secondary"
               className={`border-0 ${approvalBadgeClasses[agent.approval]}`}

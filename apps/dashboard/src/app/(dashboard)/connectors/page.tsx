@@ -20,9 +20,7 @@ export default function ConnectorsPage() {
           <CardContent className="flex items-center gap-3 py-8">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <div>
-              <p className="font-medium text-destructive">
-                Cannot connect to server
-              </p>
+              <p className="font-medium text-destructive">Cannot connect to server</p>
               <p className="text-sm text-muted-foreground">
                 Make sure the Gnana server is running at{" "}
                 {process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000"}

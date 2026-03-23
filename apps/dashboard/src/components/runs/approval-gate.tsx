@@ -51,9 +51,7 @@ export function ApprovalGate({ plan, onApprove, onReject }: ApprovalGateProps) {
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-medium">{step.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {step.description}
-                </p>
+                <p className="text-xs text-muted-foreground">{step.description}</p>
               </div>
             </li>
           ))}
@@ -61,10 +59,7 @@ export function ApprovalGate({ plan, onApprove, onReject }: ApprovalGateProps) {
 
         {/* Modifications textarea */}
         <div>
-          <label
-            htmlFor="modifications"
-            className="text-xs font-medium text-muted-foreground"
-          >
+          <label htmlFor="modifications" className="text-xs font-medium text-muted-foreground">
             Modifications (optional)
           </label>
           <Textarea
@@ -80,10 +75,7 @@ export function ApprovalGate({ plan, onApprove, onReject }: ApprovalGateProps) {
         {/* Reject reason (shown when reject is clicked once) */}
         {showRejectReason && (
           <div>
-            <label
-              htmlFor="reject-reason"
-              className="text-xs font-medium text-muted-foreground"
-            >
+            <label htmlFor="reject-reason" className="text-xs font-medium text-muted-foreground">
               Rejection Reason (optional)
             </label>
             <Textarea

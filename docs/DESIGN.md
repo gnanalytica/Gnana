@@ -92,35 +92,36 @@ gnana/                              (separate repo, pnpm monorepo)
 The stateless orchestration engine. No server, no database — pure logic.
 
 **Agent Definition:**
+
 ```typescript
 interface AgentDefinition {
   id: string;
   name: string;
   description: string;
-  systemPrompt: string;               // identity + instructions
-  tools: ToolDefinition[];            // custom tool handlers
-  mcpServers?: MCPServerConfig[];     // MCP connections
+  systemPrompt: string; // identity + instructions
+  tools: ToolDefinition[]; // custom tool handlers
+  mcpServers?: MCPServerConfig[]; // MCP connections
   llm: {
-    analysis: ModelConfig;            // model for analysis phase
-    planning: ModelConfig;            // model for planning phase
-    execution?: ModelConfig;          // model for execution phase
+    analysis: ModelConfig; // model for analysis phase
+    planning: ModelConfig; // model for planning phase
+    execution?: ModelConfig; // model for execution phase
   };
-  triggers: TriggerConfig[];          // when to activate
+  triggers: TriggerConfig[]; // when to activate
   approval: "required" | "auto" | "conditional";
-  hooks?: AgentHooks;                 // lifecycle callbacks
-  maxToolRounds?: number;             // default: 10
+  hooks?: AgentHooks; // lifecycle callbacks
+  maxToolRounds?: number; // default: 10
 }
 
 interface ModelConfig {
-  provider: string;                   // "anthropic" | "google" | "openai" | "openrouter"
-  model: string;                      // "claude-sonnet-4-20250514" | "gemini-2.5-flash" etc.
+  provider: string; // "anthropic" | "google" | "openai" | "openrouter"
+  model: string; // "claude-sonnet-4-20250514" | "gemini-2.5-flash" etc.
   maxTokens?: number;
   temperature?: number;
 }
 
 interface TriggerConfig {
   type: "assignment" | "mention" | "webhook" | "cron" | "manual";
-  config?: Record<string, unknown>;   // cron expression, webhook path, etc.
+  config?: Record<string, unknown>; // cron expression, webhook path, etc.
 }
 ```
 
@@ -129,8 +130,16 @@ interface TriggerConfig {
 The pipeline processes runs through deterministic stages. Each stage is a function that receives context and returns the next state.
 
 ```typescript
-type PipelineStage = "queued" | "analyzing" | "planning" | "awaiting_approval"
-                   | "approved" | "executing" | "completed" | "failed" | "rejected";
+type PipelineStage =
+  | "queued"
+  | "analyzing"
+  | "planning"
+  | "awaiting_approval"
+  | "approved"
+  | "executing"
+  | "completed"
+  | "failed"
+  | "rejected";
 
 interface RunContext {
   run: Run;
@@ -183,8 +192,8 @@ interface ToolDefinition {
 interface MCPServerConfig {
   name: string;
   transport: "stdio" | "http";
-  command?: string;          // for stdio: command to run
-  url?: string;              // for http: server URL
+  command?: string; // for stdio: command to run
+  url?: string; // for http: server URL
   env?: Record<string, string>;
 }
 
@@ -194,7 +203,7 @@ class ToolExecutor {
   private mcpClients: Map<string, MCPClient>;
 
   async execute(toolName: string, input: unknown): Promise<string>;
-  listTools(): LLMToolDef[];  // unified list for LLM
+  listTools(): LLMToolDef[]; // unified list for LLM
 }
 ```
 
@@ -239,7 +248,7 @@ interface EventBus {
 
 ---
 
-### @gnana/providers/* — LLM Providers
+### @gnana/providers/\* — LLM Providers
 
 **Shared interface (`@gnana/providers/base`):**
 
@@ -260,7 +269,7 @@ interface ChatParams {
 }
 
 interface ChatResponse {
-  content: ResponseBlock[];          // text + tool_use blocks
+  content: ResponseBlock[]; // text + tool_use blocks
   stopReason: "end_turn" | "tool_use" | "max_tokens";
   usage: { inputTokens: number; outputTokens: number };
   model: string;
@@ -269,12 +278,12 @@ interface ChatResponse {
 
 **Built-in providers:**
 
-| Package | Provider | SDK | Notes |
-|---------|----------|-----|-------|
-| `@gnana/provider-anthropic` | Anthropic | `@anthropic-ai/sdk` | Claude Sonnet/Opus/Haiku. Native tool_use. |
-| `@gnana/provider-google` | Google | `@google/genai` | Gemini 2.5 Pro/Flash. Function calling. |
-| `@gnana/provider-openai` | OpenAI | `openai` | GPT-4.1, o3/o4-mini. Function calling. |
-| `@gnana/provider-openrouter` | OpenRouter | `openai` (compat) | 200+ models. Same OpenAI SDK, different base URL. Covers Llama, Mistral, DeepSeek, Qwen, etc. |
+| Package                      | Provider   | SDK                 | Notes                                                                                         |
+| ---------------------------- | ---------- | ------------------- | --------------------------------------------------------------------------------------------- |
+| `@gnana/provider-anthropic`  | Anthropic  | `@anthropic-ai/sdk` | Claude Sonnet/Opus/Haiku. Native tool_use.                                                    |
+| `@gnana/provider-google`     | Google     | `@google/genai`     | Gemini 2.5 Pro/Flash. Function calling.                                                       |
+| `@gnana/provider-openai`     | OpenAI     | `openai`            | GPT-4.1, o3/o4-mini. Function calling.                                                        |
+| `@gnana/provider-openrouter` | OpenRouter | `openai` (compat)   | 200+ models. Same OpenAI SDK, different base URL. Covers Llama, Mistral, DeepSeek, Qwen, etc. |
 
 Each provider normalizes its SDK's response format to the shared `ChatResponse` interface. Adding a new provider = implement `LLMProvider` interface (~100 lines).
 
@@ -289,9 +298,9 @@ interface RouteConfig {
 }
 
 interface RouterConfig {
-  routes: Record<string, RouteConfig>;  // task → provider/model
-  fallbackChain?: string[];             // provider names in priority order
-  retries?: number;                     // default: 2
+  routes: Record<string, RouteConfig>; // task → provider/model
+  fallbackChain?: string[]; // provider names in priority order
+  retries?: number; // default: 2
 }
 
 class LLMRouter {
@@ -299,7 +308,10 @@ class LLMRouter {
 
   // Route a request to the right provider
   async chat(taskType: string, params: Omit<ChatParams, "model">): Promise<ChatResponse>;
-  async chatWithTools(taskType: string, params: Omit<ToolChatParams, "model">): Promise<ChatResponse>;
+  async chatWithTools(
+    taskType: string,
+    params: Omit<ToolChatParams, "model">,
+  ): Promise<ChatResponse>;
 }
 ```
 
@@ -353,6 +365,7 @@ WS     /ws/agents/:id/runs            Subscribe to agent's run updates
 ```
 
 **Authentication:**
+
 - API key based (simple `Authorization: Bearer <key>`)
 - Keys scoped to workspaces (for multi-tenancy in SaaS mode)
 - Dashboard uses session cookies (standard Next.js auth)
@@ -367,7 +380,7 @@ import { OpenAIProvider } from "@gnana/provider-openai";
 
 const server = createGnanaServer({
   port: 4000,
-  database: process.env.DATABASE_URL,     // Postgres connection
+  database: process.env.DATABASE_URL, // Postgres connection
   providers: {
     anthropic: new AnthropicProvider(process.env.ANTHROPIC_API_KEY),
     google: new GoogleProvider(process.env.GOOGLE_AI_KEY),
@@ -411,7 +424,7 @@ const run = await gnana.runs.trigger({
 
 // Subscribe to real-time updates
 const unsub = gnana.runs.subscribe(run.id, (update) => {
-  console.log(update.status);   // "analyzing" → "planning" → "awaiting_approval"
+  console.log(update.status); // "analyzing" → "planning" → "awaiting_approval"
   if (update.plan) renderPlan(update.plan);
 });
 
@@ -448,6 +461,7 @@ workspaces          Multi-tenant workspace isolation (SaaS mode)
 ```
 
 **Key design decisions:**
+
 - `agents.tools_config` is JSONB — stores the full agent definition including tool list, model routes, triggers
 - `runs.analysis` and `runs.plan` are JSONB — flexible structured data
 - `connectors.credentials` is encrypted at rest — API keys, OAuth tokens
@@ -479,17 +493,20 @@ A **Next.js** application served by the Gnana server (or deployed separately).
 **Agent Builder Wizard (4 steps):**
 
 **Step 1 — Identity:**
+
 - Name, description, avatar
 - System prompt (text area with template suggestions)
 - "Use template" dropdown (PM Analyst, Code Reviewer, Report Generator, etc.)
 
 **Step 2 — Models:**
+
 - Select model for each phase (analysis, planning, execution)
 - Dropdown populated from registered providers
 - "Test" button to verify model access
 - Advanced: temperature, max tokens per phase
 
 **Step 3 — Tools:**
+
 - Left panel: available tools from registered connectors + MCP servers
 - Right panel: selected tools for this agent
 - Drag-and-drop or checkbox to add/remove
@@ -498,6 +515,7 @@ A **Next.js** application served by the Gnana server (or deployed separately).
 - "Connect MCP Server" — URL or command to start
 
 **Step 4 — Triggers & Approval:**
+
 - Checkboxes: assignment, mention, webhook, cron, manual
 - Cron: expression builder UI (every day at 9am, every Monday, etc.)
 - Webhook: auto-generated URL + secret
@@ -532,6 +550,7 @@ A **Next.js** application served by the Gnana server (or deployed separately).
 ```
 
 Each connector has:
+
 - Auth setup (OAuth redirect or API key input)
 - Auto-discovered tools list
 - Test connection button
@@ -562,7 +581,7 @@ Pre-built connectors expose tools automatically. Each connector implements:
 
 ```typescript
 interface Connector {
-  type: string;                          // "github", "slack", "postgres"
+  type: string; // "github", "slack", "postgres"
   name: string;
   icon: string;
 
@@ -581,15 +600,16 @@ interface Connector {
 
 **Day-1 connectors:**
 
-| Connector | Auth Type | Auto-discovered Tools |
-|-----------|-----------|----------------------|
-| GitHub | OAuth / Token | search_repos, get_issues, create_pr, list_commits, get_file |
-| Slack | OAuth | send_message, search_messages, list_channels, get_thread |
-| Postgres | Connection string | query, list_tables, describe_table |
-| HTTP API | API key / Bearer | Custom endpoints defined by user (URL + method + schema) |
-| MCP Server | N/A | Whatever the MCP server exposes |
+| Connector  | Auth Type         | Auto-discovered Tools                                       |
+| ---------- | ----------------- | ----------------------------------------------------------- |
+| GitHub     | OAuth / Token     | search_repos, get_issues, create_pr, list_commits, get_file |
+| Slack      | OAuth             | send_message, search_messages, list_channels, get_thread    |
+| Postgres   | Connection string | query, list_tables, describe_table                          |
+| HTTP API   | API key / Bearer  | Custom endpoints defined by user (URL + method + schema)    |
+| MCP Server | N/A               | Whatever the MCP server exposes                             |
 
 **Generic HTTP connector** is critical — it lets users connect ANY REST API without writing code:
+
 1. Enter base URL + auth header
 2. Define endpoints (GET /users, POST /reports)
 3. Gnana auto-generates tool definitions from the endpoint config
@@ -624,6 +644,7 @@ interface Connector {
 ## Implementation Phases
 
 ### Phase 1: Core Framework (Week 1-2)
+
 - Repo setup (pnpm monorepo + Turborepo)
 - `@gnana/core` — pipeline engine, tool executor, hook system, event bus
 - `@gnana/provider-anthropic` — Claude provider
@@ -636,18 +657,21 @@ interface Connector {
 - Extract + refactor existing `src/lib/agent/` code from Gnanalytica PM
 
 ### Phase 2: Connectors + Dashboard (Week 3-4)
+
 - Pre-built connectors: GitHub, Slack, Postgres, HTTP API
 - MCP client integration
 - Dashboard app (Next.js): agent builder wizard, connector hub, run explorer
 - Provider settings UI (register API keys, configure model routing)
 
 ### Phase 3: Gnanalytica PM Migration (Week 5)
+
 - Replace `src/lib/agent/` with `@gnana/client` SDK
 - PM triggers runs via Gnana server instead of in-process
 - PM subscribes to WebSocket for real-time updates
 - Remove duplicated agent code from PM codebase
 
 ### Phase 4: Advanced Features (Week 6+)
+
 - Flow builder (visual node graph for multi-step workflows)
 - Multi-agent orchestration (agents that delegate to other agents)
 - Scheduled runs (cron trigger)
@@ -659,16 +683,16 @@ interface Connector {
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Runtime | Node.js 22+ / Bun | Long-running processes, WebSocket, no timeout limits |
-| Server | Hono | Lightweight, fast, universal (Node/Bun/Deno) |
-| Database | PostgreSQL + Drizzle ORM | Type-safe, zero-abstraction SQL, great migrations |
-| Monorepo | pnpm + Turborepo | Fast installs, workspace protocol, parallel builds |
-| Dashboard | Next.js 16 | Consistent with Gnanalytica PM, App Router, RSC |
-| UI | shadcn/ui + Tailwind | Consistent design system, dark mode |
-| WebSocket | Hono WebSocket / ws | Native support, efficient push |
-| MCP | @modelcontextprotocol/sdk | Standard protocol for tool integration |
+| Layer     | Technology                | Why                                                  |
+| --------- | ------------------------- | ---------------------------------------------------- |
+| Runtime   | Node.js 22+ / Bun         | Long-running processes, WebSocket, no timeout limits |
+| Server    | Hono                      | Lightweight, fast, universal (Node/Bun/Deno)         |
+| Database  | PostgreSQL + Drizzle ORM  | Type-safe, zero-abstraction SQL, great migrations    |
+| Monorepo  | pnpm + Turborepo          | Fast installs, workspace protocol, parallel builds   |
+| Dashboard | Next.js 16                | Consistent with Gnanalytica PM, App Router, RSC      |
+| UI        | shadcn/ui + Tailwind      | Consistent design system, dark mode                  |
+| WebSocket | Hono WebSocket / ws       | Native support, efficient push                       |
+| MCP       | @modelcontextprotocol/sdk | Standard protocol for tool integration               |
 
 ---
 
@@ -714,6 +738,7 @@ interface ChatResponseChunk {
 ```
 
 **Event bus streaming events:**
+
 - `run:token` — partial text output during analysis/planning (for real-time UI)
 - `run:tool_started` — tool call initiated
 - `run:tool_completed` — tool call finished with result
@@ -729,11 +754,11 @@ When a run is approved, the execution phase receives the approved plan and proce
 ```typescript
 interface ExecutionContext {
   run: Run;
-  plan: Plan;                          // the approved plan
+  plan: Plan; // the approved plan
   agent: AgentDefinition;
   tools: ToolExecutor;
   llm: LLMRouter;
-  modifications?: string;             // user modifications from approval
+  modifications?: string; // user modifications from approval
 }
 
 interface ExecutionResult {
@@ -752,13 +777,14 @@ interface StepResult {
 interface Artifact {
   type: "code" | "document" | "report" | "image" | "link";
   title: string;
-  content?: string;                    // text/markdown/code content
-  url?: string;                        // external link (PR, branch, doc)
+  content?: string; // text/markdown/code content
+  url?: string; // external link (PR, branch, doc)
   mimeType?: string;
 }
 ```
 
 **Execution guardrails:**
+
 - Each plan step is executed sequentially with LLM guidance
 - Tool calls during execution are logged to `run_logs`
 - Steps can be skipped if the LLM determines they are unnecessary
@@ -771,6 +797,7 @@ interface Artifact {
 ## Error Handling and Retry Strategy
 
 **LLM call failures:**
+
 - Rate limit (429): exponential backoff with `Retry-After` header respect, max 3 retries
 - Server error (500/502/503): retry up to 2 times with 1s/2s/4s backoff
 - Auth error (401/403): fail immediately, no retry
@@ -779,17 +806,20 @@ interface Artifact {
 - After all providers exhausted: mark run as `failed` with error details
 
 **Tool call failures:**
+
 - Tool timeout: configurable per tool (default 30s), retry once
 - Tool error: log error, return error message to LLM for recovery
 - MCP server crash: attempt reconnection once, then skip tool
 
 **Run durability:**
+
 - Each stage (analysis, planning, execution) checkpoints state to the database
 - If the server restarts, runs in `analyzing`/`planning`/`executing` status are detected on startup
 - Resumable runs restart from the last completed stage (not from scratch)
 - Runs stuck for >10 minutes in an active status are marked `failed` by a cleanup sweep
 
 **Concurrency control:**
+
 - Configurable max concurrent runs per server (default: 10)
 - Runs beyond the limit are queued in `queued` status
 - A simple in-process semaphore manages concurrency (pg-boss or BullMQ for distributed setups)
@@ -828,6 +858,7 @@ Phase 1 `TriggerConfig.type` is limited to: `"assignment" | "mention" | "webhook
 ## Naming Convention
 
 The Gnana framework uses **camelCase** consistently for all TypeScript interfaces:
+
 - `inputTokens`, `outputTokens` (not `input_tokens`)
 - `stopReason` (not `stop_reason`)
 - `inputSchema` (not `input_schema`)

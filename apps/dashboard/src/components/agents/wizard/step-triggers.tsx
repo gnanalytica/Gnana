@@ -11,10 +11,7 @@ interface StepTriggersProps {
   onChange: (updates: Partial<WizardData>) => void;
 }
 
-function hasTriggerType(
-  triggers: WizardData["triggers"],
-  type: string
-): boolean {
+function hasTriggerType(triggers: WizardData["triggers"], type: string): boolean {
   return triggers.some((t) => t.type === type);
 }
 
@@ -32,21 +29,14 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
     }
   };
 
-  const updateTriggerConfig = (
-    type: string,
-    config: Record<string, unknown>
-  ) => {
+  const updateTriggerConfig = (type: string, config: Record<string, unknown>) => {
     onChange({
-      triggers: data.triggers.map((t) =>
-        t.type === type ? { ...t, config } : t
-      ),
+      triggers: data.triggers.map((t) => (t.type === type ? { ...t, config } : t)),
     });
   };
 
   const copyWebhookUrl = () => {
-    navigator.clipboard.writeText(
-      "https://gnana.example/api/webhook/[agent-id]"
-    );
+    navigator.clipboard.writeText("https://gnana.example/api/webhook/[agent-id]");
   };
 
   return (
@@ -57,12 +47,7 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
 
         {/* Manual — always checked */}
         <label className="flex items-start gap-3 rounded-md border px-4 py-3 bg-muted/30">
-          <input
-            type="checkbox"
-            checked
-            disabled
-            className="mt-0.5 accent-primary"
-          />
+          <input type="checkbox" checked disabled className="mt-0.5 accent-primary" />
           <div>
             <p className="text-sm font-medium">Manual</p>
             <p className="text-xs text-muted-foreground">
@@ -82,9 +67,7 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
             />
             <div>
               <p className="text-sm font-medium">Webhook</p>
-              <p className="text-xs text-muted-foreground">
-                Trigger via HTTP webhook endpoint
-              </p>
+              <p className="text-xs text-muted-foreground">Trigger via HTTP webhook endpoint</p>
             </div>
           </label>
           {hasTriggerType(data.triggers, "webhook") && (
@@ -127,8 +110,8 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
               <Input
                 placeholder="Assignment field (e.g. assignee)"
                 value={
-                  (data.triggers.find((t) => t.type === "assignment")?.config
-                    ?.field as string) || ""
+                  (data.triggers.find((t) => t.type === "assignment")?.config?.field as string) ||
+                  ""
                 }
                 onChange={(e) =>
                   updateTriggerConfig("assignment", {
@@ -151,9 +134,7 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
             />
             <div>
               <p className="text-sm font-medium">Mention</p>
-              <p className="text-xs text-muted-foreground">
-                Trigger when the agent is mentioned
-              </p>
+              <p className="text-xs text-muted-foreground">Trigger when the agent is mentioned</p>
             </div>
           </label>
           {hasTriggerType(data.triggers, "mention") && (
@@ -161,8 +142,7 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
               <Input
                 placeholder="Mention pattern (e.g. @my-agent)"
                 value={
-                  (data.triggers.find((t) => t.type === "mention")?.config
-                    ?.pattern as string) || ""
+                  (data.triggers.find((t) => t.type === "mention")?.config?.pattern as string) || ""
                 }
                 onChange={(e) =>
                   updateTriggerConfig("mention", {
@@ -212,12 +192,7 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
         </label>
 
         <label className="flex items-start gap-3 rounded-md border px-4 py-3 opacity-60 cursor-not-allowed">
-          <input
-            type="radio"
-            name="approval"
-            disabled
-            className="mt-0.5 accent-primary"
-          />
+          <input type="radio" name="approval" disabled className="mt-0.5 accent-primary" />
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">Conditional</p>
             <Badge variant="secondary" className="text-[10px]">
@@ -229,9 +204,7 @@ export function StepTriggers({ data, onChange }: StepTriggersProps) {
 
       {/* Max Execution Time */}
       <div className="space-y-2">
-        <Label htmlFor="maxToolRounds">
-          Maximum execution time (minutes)
-        </Label>
+        <Label htmlFor="maxToolRounds">Maximum execution time (minutes)</Label>
         <Input
           id="maxToolRounds"
           type="number"

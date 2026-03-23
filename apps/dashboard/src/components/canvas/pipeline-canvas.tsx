@@ -33,21 +33,71 @@ const nodeTypes = {
 function createDefaultNodes(): Node[] {
   return [
     { id: "trigger", type: "trigger", position: { x: 0, y: 150 }, data: { triggerType: "Manual" } },
-    { id: "analyze", type: "llm", position: { x: 220, y: 100 }, data: { phase: "analyze", model: "Claude Sonnet 4", provider: "Anthropic", toolCount: 3 } },
-    { id: "plan", type: "llm", position: { x: 460, y: 100 }, data: { phase: "plan", model: "Gemini 2.5 Flash", provider: "Google", toolCount: 0 } },
-    { id: "approve", type: "humanGate", position: { x: 700, y: 150 }, data: { approval: "required" } },
-    { id: "execute", type: "llm", position: { x: 940, y: 100 }, data: { phase: "execute", model: "GPT-4.1", provider: "OpenAI", toolCount: 5 } },
+    {
+      id: "analyze",
+      type: "llm",
+      position: { x: 220, y: 100 },
+      data: { phase: "analyze", model: "Claude Sonnet 4", provider: "Anthropic", toolCount: 3 },
+    },
+    {
+      id: "plan",
+      type: "llm",
+      position: { x: 460, y: 100 },
+      data: { phase: "plan", model: "Gemini 2.5 Flash", provider: "Google", toolCount: 0 },
+    },
+    {
+      id: "approve",
+      type: "humanGate",
+      position: { x: 700, y: 150 },
+      data: { approval: "required" },
+    },
+    {
+      id: "execute",
+      type: "llm",
+      position: { x: 940, y: 100 },
+      data: { phase: "execute", model: "GPT-4.1", provider: "OpenAI", toolCount: 5 },
+    },
     { id: "output", type: "output", position: { x: 1160, y: 150 }, data: {} },
   ];
 }
 
 function createDefaultEdges(): Edge[] {
   return [
-    { id: "e-trigger-analyze", source: "trigger", target: "analyze", animated: true, style: { stroke: "var(--phase-trigger)" } },
-    { id: "e-analyze-plan", source: "analyze", target: "plan", animated: true, style: { stroke: "var(--phase-analyze)" } },
-    { id: "e-plan-approve", source: "plan", target: "approve", animated: true, style: { stroke: "var(--phase-plan)" } },
-    { id: "e-approve-execute", source: "approve", target: "execute", animated: true, style: { stroke: "var(--phase-approve)" } },
-    { id: "e-execute-output", source: "execute", target: "output", animated: true, style: { stroke: "var(--phase-execute)" } },
+    {
+      id: "e-trigger-analyze",
+      source: "trigger",
+      target: "analyze",
+      animated: true,
+      style: { stroke: "var(--phase-trigger)" },
+    },
+    {
+      id: "e-analyze-plan",
+      source: "analyze",
+      target: "plan",
+      animated: true,
+      style: { stroke: "var(--phase-analyze)" },
+    },
+    {
+      id: "e-plan-approve",
+      source: "plan",
+      target: "approve",
+      animated: true,
+      style: { stroke: "var(--phase-plan)" },
+    },
+    {
+      id: "e-approve-execute",
+      source: "approve",
+      target: "execute",
+      animated: true,
+      style: { stroke: "var(--phase-approve)" },
+    },
+    {
+      id: "e-execute-output",
+      source: "execute",
+      target: "output",
+      animated: true,
+      style: { stroke: "var(--phase-execute)" },
+    },
   ];
 }
 
@@ -96,7 +146,9 @@ export function PipelineCanvas() {
         onUpdate={(data) => {
           if (selectedNode) {
             setNodes((nds) =>
-              nds.map((n) => (n.id === selectedNode.id ? { ...n, data: { ...n.data, ...data } } : n))
+              nds.map((n) =>
+                n.id === selectedNode.id ? { ...n, data: { ...n.data, ...data } } : n,
+              ),
             );
           }
         }}

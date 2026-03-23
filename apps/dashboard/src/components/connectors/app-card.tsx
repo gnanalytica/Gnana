@@ -44,9 +44,7 @@ export function AppCard({ app, onInstall }: AppCardProps) {
                 {app.category}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 truncate">
-              {app.description}
-            </p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{app.description}</p>
           </div>
           <div className="shrink-0">
             {app.installed ? (

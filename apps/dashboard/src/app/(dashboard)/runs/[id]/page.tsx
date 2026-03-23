@@ -18,19 +18,13 @@ import type { PipelineStage } from "@/types";
 // ---------- Status styling ----------
 
 const statusBadgeClasses: Record<string, string> = {
-  completed:
-    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  analyzing:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  planning:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  executing:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  awaiting_approval:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  approved:
-    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  analyzing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  planning: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  executing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  awaiting_approval: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   queued: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
   rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
@@ -166,9 +160,7 @@ export default function RunDetailPage() {
       // Reload the page to see updated status
       window.location.reload();
     } catch (err) {
-      setApprovalError(
-        err instanceof Error ? err.message : "Failed to approve run"
-      );
+      setApprovalError(err instanceof Error ? err.message : "Failed to approve run");
     }
   }
 
@@ -179,9 +171,7 @@ export default function RunDetailPage() {
       // Reload the page to see updated status
       window.location.reload();
     } catch (err) {
-      setApprovalError(
-        err instanceof Error ? err.message : "Failed to reject run"
-      );
+      setApprovalError(err instanceof Error ? err.message : "Failed to reject run");
     }
   }
 
@@ -196,11 +186,7 @@ export default function RunDetailPage() {
   if (error) {
     return (
       <div className="p-8 space-y-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/runs")}
-        >
+        <Button variant="ghost" size="sm" onClick={() => router.push("/runs")}>
           <ArrowLeft className="h-4 w-4" />
           Back to Runs
         </Button>
@@ -208,9 +194,7 @@ export default function RunDetailPage() {
           <CardContent className="flex items-center gap-3 py-8">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <div>
-              <p className="font-medium text-destructive">
-                Cannot connect to server
-              </p>
+              <p className="font-medium text-destructive">Cannot connect to server</p>
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           </CardContent>
@@ -222,19 +206,12 @@ export default function RunDetailPage() {
   if (!run) {
     return (
       <div className="p-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/runs")}
-          className="mb-4"
-        >
+        <Button variant="ghost" size="sm" onClick={() => router.push("/runs")} className="mb-4">
           <ArrowLeft className="h-4 w-4" />
           Back to Runs
         </Button>
         <h1 className="text-2xl font-bold">Run not found</h1>
-        <p className="text-muted-foreground mt-2">
-          No run with ID &ldquo;{runId}&rdquo; exists.
-        </p>
+        <p className="text-muted-foreground mt-2">No run with ID &ldquo;{runId}&rdquo; exists.</p>
       </div>
     );
   }
@@ -245,12 +222,7 @@ export default function RunDetailPage() {
     <div className="p-8 space-y-6 max-w-5xl">
       {/* Back button + Header */}
       <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/runs")}
-          className="mb-4"
-        >
+        <Button variant="ghost" size="sm" onClick={() => router.push("/runs")} className="mb-4">
           <ArrowLeft className="h-4 w-4" />
           Back to Runs
         </Button>
@@ -262,10 +234,7 @@ export default function RunDetailPage() {
           </Badge>
           <Badge
             variant="secondary"
-            className={cn(
-              "border-0 text-xs capitalize",
-              statusBadgeClasses[run.status],
-            )}
+            className={cn("border-0 text-xs capitalize", statusBadgeClasses[run.status])}
           >
             {run.status.replace(/_/g, " ")}
           </Badge>
@@ -288,14 +257,8 @@ export default function RunDetailPage() {
       {/* Approval gate (shown prominently when awaiting approval) */}
       {run.status === "awaiting_approval" && run.plan && (
         <>
-          <ApprovalGate
-            plan={run.plan}
-            onApprove={handleApprove}
-            onReject={handleReject}
-          />
-          {approvalError && (
-            <p className="text-sm text-destructive">{approvalError}</p>
-          )}
+          <ApprovalGate plan={run.plan} onApprove={handleApprove} onReject={handleReject} />
+          {approvalError && <p className="text-sm text-destructive">{approvalError}</p>}
         </>
       )}
 

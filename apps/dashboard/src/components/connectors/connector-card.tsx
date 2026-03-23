@@ -2,12 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const typeIcons: Record<string, string> = {
   github: "\uD83D\uDC19",
@@ -45,20 +40,18 @@ export function ConnectorCard({ connector }: ConnectorCardProps) {
           </div>
           <Badge
             variant={connector.status === "active" ? "default" : "destructive"}
-            className={
-              connector.status === "active"
-                ? "bg-green-600 hover:bg-green-600/80"
-                : ""
-            }
+            className={connector.status === "active" ? "bg-green-600 hover:bg-green-600/80" : ""}
           >
-            {connector.status === "active" ? "Active" : connector.status === "error" ? "Error" : "Disconnected"}
+            {connector.status === "active"
+              ? "Active"
+              : connector.status === "error"
+                ? "Error"
+                : "Disconnected"}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
-          {connector.toolCount} tools
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">{connector.toolCount} tools</p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
             Test

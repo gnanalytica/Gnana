@@ -81,9 +81,7 @@ export default function ApiKeysPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">API Keys</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage API keys for programmatic access.
-          </p>
+          <p className="text-muted-foreground mt-1">Manage API keys for programmatic access.</p>
         </div>
         <Button onClick={() => setGenerateOpen(true)}>
           <Plus className="h-4 w-4" />
@@ -125,11 +123,7 @@ export default function ApiKeysPage() {
                       >
                         Yes, revoke
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setRevokeId(null)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => setRevokeId(null)}>
                         Cancel
                       </Button>
                     </div>
@@ -158,13 +152,17 @@ export default function ApiKeysPage() {
       </div>
 
       {/* Generate Key Dialog */}
-      <Dialog open={generateOpen} onOpenChange={(open) => { if (!open) handleCloseGenerate(); else setGenerateOpen(true); }}>
+      <Dialog
+        open={generateOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCloseGenerate();
+          else setGenerateOpen(true);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Generate API Key</DialogTitle>
-            <DialogDescription>
-              Create a new API key for programmatic access.
-            </DialogDescription>
+            <DialogDescription>Create a new API key for programmatic access.</DialogDescription>
           </DialogHeader>
 
           {generatedKey ? (
@@ -176,11 +174,7 @@ export default function ApiKeysPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Input
-                  readOnly
-                  value={generatedKey}
-                  className="font-mono text-sm"
-                />
+                <Input readOnly value={generatedKey} className="font-mono text-sm" />
                 <Button
                   variant="outline"
                   size="icon"
@@ -207,11 +201,7 @@ export default function ApiKeysPage() {
                 />
               </div>
               <DialogFooter>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!newKeyName.trim()}
-                  className="w-full"
-                >
+                <Button onClick={handleGenerate} disabled={!newKeyName.trim()} className="w-full">
                   Generate
                 </Button>
               </DialogFooter>

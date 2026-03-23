@@ -54,6 +54,7 @@ apps/dashboard/                      Next.js 16 App Router
 ```
 
 **Tech stack:**
+
 - Next.js 16 (App Router, RSC)
 - shadcn/ui + Tailwind CSS (dark/light mode, system preference default)
 - @xyflow/react (React Flow) for the pipeline canvas
@@ -72,6 +73,7 @@ The dashboard uses a collapsible sidebar (GitHub/Notion style):
 - **Canvas mode:** Auto-collapses when pipeline canvas is open for maximum space
 
 **Navigation items:**
+
 1. Dashboard (home) — stats, recent runs, quick actions
 2. Agents — library, builder, editor
 3. Runs — explorer with filters
@@ -88,12 +90,14 @@ The dashboard uses a collapsible sidebar (GitHub/Notion style):
 The primary creation flow. Gets users from zero to a working agent in under 5 minutes.
 
 ### Step 1: Identity
+
 - Name, description, avatar (auto-generated from name)
 - System prompt (text area with template suggestions)
 - "Start from template" dropdown: PM Analyst, Code Reviewer, Report Generator, Support Agent, Data Analyst, Custom
 - Templates pre-fill system prompt + suggested tools + model config
 
 ### Step 2: Models
+
 - Select LLM for each pipeline phase:
   - **Analysis model** — default: Claude Sonnet
   - **Planning model** — default: Gemini Flash
@@ -103,6 +107,7 @@ The primary creation flow. Gets users from zero to a working agent in under 5 mi
 - Advanced toggle: temperature, max tokens per phase
 
 ### Step 3: Tools & Connectors
+
 - **Left panel:** Available tools from installed connectors + MCP servers
 - **Right panel:** Selected tools for this agent
 - Drag-and-drop or checkbox to add/remove
@@ -112,6 +117,7 @@ The primary creation flow. Gets users from zero to a working agent in under 5 mi
 - "Add Custom Tool" → name, description, JSON Schema, webhook URL
 
 ### Step 4: Triggers & Approval
+
 - Trigger types (checkbox): manual, webhook, assignment, mention
   - Webhook: auto-generated URL + secret, copy button
   - Manual: "Run Now" button on agent detail page
@@ -136,6 +142,7 @@ A structured left-to-right flow mirroring Gnana's 4-phase pipeline:
 ```
 
 Each phase is a **lane** (colored section) containing:
+
 - **Model selector** — which LLM handles this phase
 - **Tool slots** — which tools are available in this phase
 - **Hook slots** — lifecycle callbacks (onAnalysisComplete, onPlanComplete, etc.)
@@ -156,15 +163,15 @@ Within the Execute phase, users can switch to a free-form node editor for comple
 
 ### Canvas Node Types
 
-| Node | Purpose | Inputs | Outputs |
-|------|---------|--------|---------|
-| **Trigger** | What starts the run | — | trigger payload |
-| **LLM Call** | Call a model | prompt, context | response |
-| **Tool Call** | Execute a tool | tool name, input | result |
-| **Condition** | Branch on value | expression | true/false paths |
-| **Human Gate** | Pause for approval | plan | approved/rejected |
-| **Sub-Agent** | Delegate to another agent | agent ID, payload | result |
-| **Output** | Final result | data | — |
+| Node           | Purpose                   | Inputs            | Outputs           |
+| -------------- | ------------------------- | ----------------- | ----------------- |
+| **Trigger**    | What starts the run       | —                 | trigger payload   |
+| **LLM Call**   | Call a model              | prompt, context   | response          |
+| **Tool Call**  | Execute a tool            | tool name, input  | result            |
+| **Condition**  | Branch on value           | expression        | true/false paths  |
+| **Human Gate** | Pause for approval        | plan              | approved/rejected |
+| **Sub-Agent**  | Delegate to another agent | agent ID, payload | result            |
+| **Output**     | Final result              | data              | —                 |
 
 ---
 
@@ -190,12 +197,14 @@ The flagship feature. Shows the full agent reasoning pipeline in real-time.
 ```
 
 Each phase expands to show:
+
 - **LLM reasoning** — the full model output, streamed in real-time during active runs
 - **Tool calls** — each tool invocation with input/output, timing, success/fail
 - **Token usage** — input/output tokens per phase
 - **Timing** — duration of each phase
 
 **Approval gate UI:**
+
 - When a run reaches `awaiting_approval`, the plan is displayed with:
   - Structured step list (from the Plan)
   - "Approve" button (green) + "Reject" button (red)
@@ -203,6 +212,7 @@ Each phase expands to show:
   - Who approved/rejected + timestamp
 
 **Live streaming:**
+
 - WebSocket connection to `/ws/runs/:id`
 - Text streams token-by-token during analysis/planning
 - Tool calls appear as they happen
@@ -215,6 +225,7 @@ Each phase expands to show:
 ### Installed Connectors
 
 Grid of cards showing installed connector instances:
+
 - Icon, name, status (active/disconnected)
 - Tool count exposed by this connector
 - "Test Connection" button
@@ -227,12 +238,14 @@ Browsable directory of available integrations, powered by Nango for OAuth:
 **Categories:** Communication (Slack, Teams, Discord), Development (GitHub, GitLab, Linear, Jira), CRM (HubSpot, Salesforce), Productivity (Notion, Google Workspace, Airtable), Database (Postgres, MySQL, MongoDB), Custom (HTTP API, MCP Server, Webhook)
 
 **Each app card shows:**
+
 - Icon, name, category
 - Brief description
 - "Install" / "Connected" status
 - Tool count
 
 **Install flow:**
+
 1. Click "Install" on an app
 2. OAuth redirect (handled by Nango) or API key input
 3. On success, connector is created via `POST /api/connectors`
@@ -240,6 +253,7 @@ Browsable directory of available integrations, powered by Nango for OAuth:
 5. Connector available in agent builder wizard (Step 3)
 
 **MCP Server connection:**
+
 - "Add MCP Server" button
 - Input: stdio command or HTTP URL
 - Auto-discovers available tools
@@ -250,17 +264,20 @@ Browsable directory of available integrations, powered by Nango for OAuth:
 ## Settings
 
 ### Providers
+
 - Register LLM providers with API keys
 - Test connection per provider
 - View available models per provider
 - Set default model routing (which model for which phase)
 
 ### API Keys
+
 - Generate API keys for `@gnana/client` SDK consumers
 - Revoke/rotate keys
 - Usage stats per key
 
 ### General
+
 - Workspace name, timezone
 - Default approval mode
 - Max concurrent runs
@@ -309,20 +326,20 @@ The dashboard is a **pure API consumer**. No direct database access. Everything 
 
 ## v1 Page Summary
 
-| Page | Priority | Description |
-|------|----------|-------------|
-| Dashboard home | P0 | Stats, recent runs, quick actions |
-| Agent library | P0 | List, search, create agents |
-| Agent builder wizard | P0 | 4-step creation flow |
-| Agent detail | P0 | Config, run history, edit, canvas |
-| Pipeline canvas | P0 | Hybrid pipeline + free-form editor |
-| Run explorer | P0 | List, filter, search runs |
-| Run detail (live) | P0 | Real-time pipeline view with streaming |
-| Connector hub | P1 | Installed connectors |
-| App store | P1 | Browse, install integrations (Nango) |
-| Settings / Providers | P1 | LLM provider config |
-| Settings / API keys | P1 | Key management |
-| Command palette (⌘K) | P1 | Quick search across everything |
+| Page                 | Priority | Description                            |
+| -------------------- | -------- | -------------------------------------- |
+| Dashboard home       | P0       | Stats, recent runs, quick actions      |
+| Agent library        | P0       | List, search, create agents            |
+| Agent builder wizard | P0       | 4-step creation flow                   |
+| Agent detail         | P0       | Config, run history, edit, canvas      |
+| Pipeline canvas      | P0       | Hybrid pipeline + free-form editor     |
+| Run explorer         | P0       | List, filter, search runs              |
+| Run detail (live)    | P0       | Real-time pipeline view with streaming |
+| Connector hub        | P1       | Installed connectors                   |
+| App store            | P1       | Browse, install integrations (Nango)   |
+| Settings / Providers | P1       | LLM provider config                    |
+| Settings / API keys  | P1       | Key management                         |
+| Command palette (⌘K) | P1       | Quick search across everything         |
 
 ---
 

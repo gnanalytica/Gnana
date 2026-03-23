@@ -73,7 +73,9 @@ export class MCPClientAdapter {
   async callTool(qualifiedName: string, input: Record<string, unknown>): Promise<string> {
     const separatorIndex = qualifiedName.indexOf("__");
     if (separatorIndex === -1) {
-      throw new Error(`Invalid MCP tool name: ${qualifiedName}. Expected format: serverName__toolName`);
+      throw new Error(
+        `Invalid MCP tool name: ${qualifiedName}. Expected format: serverName__toolName`,
+      );
     }
 
     const serverName = qualifiedName.slice(0, separatorIndex);

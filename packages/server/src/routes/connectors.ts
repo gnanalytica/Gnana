@@ -42,10 +42,7 @@ export function connectorRoutes(db: Database) {
   // Get connector tools
   app.get("/:id/tools", async (c) => {
     const id = c.req.param("id");
-    const result = await db
-      .select()
-      .from(connectorTools)
-      .where(eq(connectorTools.connectorId, id));
+    const result = await db.select().from(connectorTools).where(eq(connectorTools.connectorId, id));
     return c.json(result);
   });
 

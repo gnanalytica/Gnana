@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Zap,
-  Search,
-  ListChecks,
-  ShieldCheck,
-  Play,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { Zap, Search, ListChecks, ShieldCheck, Play, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PipelineStage } from "@/types";
 
@@ -143,10 +135,7 @@ export function PipelineView({ status, onPhaseClick }: PipelineViewProps) {
                 <div
                   className={cn(
                     "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all",
-                    isPhaseCompleted && [
-                      "border-transparent",
-                      phase.completedBg,
-                    ],
+                    isPhaseCompleted && ["border-transparent", phase.completedBg],
                     isActive && [phase.activeColor, "border-2"],
                     isFailed && "border-red-500 bg-red-50 dark:bg-red-950/30",
                     isPending && "border-muted-foreground/30 bg-muted/50",
@@ -159,10 +148,7 @@ export function PipelineView({ status, onPhaseClick }: PipelineViewProps) {
                     <XCircle className="h-5 w-5 text-red-500" />
                   ) : (
                     <phase.icon
-                      className={cn(
-                        "h-5 w-5",
-                        isActive ? phase.color : "text-muted-foreground/50",
-                      )}
+                      className={cn("h-5 w-5", isActive ? phase.color : "text-muted-foreground/50")}
                     />
                   )}
                 </div>

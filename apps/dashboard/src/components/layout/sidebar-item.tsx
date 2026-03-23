@@ -4,11 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SidebarItemProps {
   icon: LucideIcon;
@@ -29,7 +25,7 @@ export function SidebarItem({ icon: Icon, label, href, isCollapsed }: SidebarIte
         isCollapsed ? "justify-center w-10 h-10" : "px-3 py-2",
         isActive
           ? "bg-accent text-accent-foreground"
-          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />

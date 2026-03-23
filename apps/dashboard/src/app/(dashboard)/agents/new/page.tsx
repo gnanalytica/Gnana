@@ -26,18 +26,14 @@ export default function NewAgentPage() {
       router.push(`/agents/${(agent as Record<string, unknown>).id}`);
     } catch (err) {
       console.error("Failed to create agent:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to create agent"
-      );
+      setError(err instanceof Error ? err.message : "Failed to create agent");
     }
   };
 
   return (
     <div className="max-w-3xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-2">Create Agent</h1>
-      <p className="text-muted-foreground mb-8">
-        Set up your AI agent in 4 simple steps.
-      </p>
+      <p className="text-muted-foreground mb-8">Set up your AI agent in 4 simple steps.</p>
       {error && (
         <div className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}

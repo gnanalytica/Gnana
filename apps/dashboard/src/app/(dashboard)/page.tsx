@@ -23,19 +23,14 @@ const statusColors: Record<string, string> = {
 };
 
 const statusBadgeClasses: Record<string, string> = {
-  completed:
-    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  analyzing:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  analyzing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
   planning: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  executing:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  awaiting_approval:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  executing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  awaiting_approval: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
   queued: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-  approved:
-    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
@@ -60,12 +55,8 @@ export default function DashboardHome() {
   const stats = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const runsToday = runs.filter(
-      (r) => new Date(r.createdAt) >= today
-    ).length;
-    const awaitingApproval = runs.filter(
-      (r) => r.status === "awaiting_approval"
-    ).length;
+    const runsToday = runs.filter((r) => new Date(r.createdAt) >= today).length;
+    const awaitingApproval = runs.filter((r) => r.status === "awaiting_approval").length;
 
     return {
       activeAgents: agents.length,
@@ -76,10 +67,7 @@ export default function DashboardHome() {
 
   const recentRuns = useMemo(() => {
     return [...runs]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5);
   }, [runs]);
 
@@ -96,9 +84,7 @@ export default function DashboardHome() {
           <CardContent className="flex items-center gap-3 py-8">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <div>
-              <p className="font-medium text-destructive">
-                Cannot connect to server
-              </p>
+              <p className="font-medium text-destructive">Cannot connect to server</p>
               <p className="text-sm text-muted-foreground">
                 Make sure the Gnana server is running at{" "}
                 {process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000"}
@@ -129,23 +115,17 @@ export default function DashboardHome() {
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {isLoading ? "..." : stats.activeAgents}
-            </div>
+            <div className="text-3xl font-bold">{isLoading ? "..." : stats.activeAgents}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Runs Today
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Runs Today</CardTitle>
             <Play className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {isLoading ? "..." : stats.runsToday}
-            </div>
+            <div className="text-3xl font-bold">{isLoading ? "..." : stats.runsToday}</div>
           </CardContent>
         </Card>
 
@@ -179,13 +159,9 @@ export default function DashboardHome() {
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="px-6 py-8 text-center text-muted-foreground">
-                Loading...
-              </div>
+              <div className="px-6 py-8 text-center text-muted-foreground">Loading...</div>
             ) : recentRuns.length === 0 ? (
-              <div className="px-6 py-8 text-center text-muted-foreground">
-                No recent runs
-              </div>
+              <div className="px-6 py-8 text-center text-muted-foreground">No recent runs</div>
             ) : (
               <div className="divide-y divide-border">
                 {recentRuns.map((run) => (
@@ -195,22 +171,14 @@ export default function DashboardHome() {
                     className="flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors"
                   >
                     <span
-                      className={cn(
-                        "h-2.5 w-2.5 rounded-full shrink-0",
-                        statusColors[run.status]
-                      )}
+                      className={cn("h-2.5 w-2.5 rounded-full shrink-0", statusColors[run.status])}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {run.agentId}
-                      </p>
+                      <p className="text-sm font-medium truncate">{run.agentId}</p>
                     </div>
                     <Badge
                       variant="secondary"
-                      className={cn(
-                        "border-0 text-xs",
-                        statusBadgeClasses[run.status]
-                      )}
+                      className={cn("border-0 text-xs", statusBadgeClasses[run.status])}
                     >
                       {run.status.replace(/_/g, " ")}
                     </Badge>

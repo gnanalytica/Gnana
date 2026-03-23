@@ -42,7 +42,15 @@ export function useConnectors() {
     return result as { success: boolean; message?: string };
   };
 
-  return { connectors, isLoading, error, refetch: fetchConnectors, createConnector, deleteConnector, testConnector };
+  return {
+    connectors,
+    isLoading,
+    error,
+    refetch: fetchConnectors,
+    createConnector,
+    deleteConnector,
+    testConnector,
+  };
 }
 
 export function useConnector(id: string) {

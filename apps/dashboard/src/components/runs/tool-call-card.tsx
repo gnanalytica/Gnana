@@ -34,9 +34,7 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
         )}
         <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-sm font-medium flex-1 truncate">
-          {toolCall.name}
-        </span>
+        <span className="text-sm font-medium flex-1 truncate">{toolCall.name}</span>
         <Badge
           variant="secondary"
           className={cn(
@@ -61,17 +59,13 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
       {isExpanded && (
         <CardContent className="border-t border-border px-4 py-3 space-y-3">
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">
-              Input
-            </p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Input</p>
             <pre className="font-mono text-xs bg-muted/50 rounded-md p-3 overflow-x-auto">
               {JSON.stringify(toolCall.input, null, 2)}
             </pre>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">
-              Output
-            </p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Output</p>
             <pre className="font-mono text-xs bg-muted/50 rounded-md p-3 overflow-x-auto">
               {JSON.stringify(toolCall.output, null, 2)}
             </pre>

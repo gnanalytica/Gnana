@@ -115,10 +115,9 @@ export function WizardShell({ onComplete }: WizardShellProps) {
               <div
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium transition-colors",
-                  i < step &&
-                    "border-primary bg-primary text-primary-foreground",
+                  i < step && "border-primary bg-primary text-primary-foreground",
                   i === step && "border-primary text-primary",
-                  i > step && "border-muted-foreground/30 text-muted-foreground"
+                  i > step && "border-muted-foreground/30 text-muted-foreground",
                 )}
               >
                 {i < step ? <Check className="h-4 w-4" /> : i + 1}
@@ -126,9 +125,7 @@ export function WizardShell({ onComplete }: WizardShellProps) {
               <span
                 className={cn(
                   "mt-1.5 text-xs",
-                  i === step
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground"
+                  i === step ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >
                 {label}
@@ -140,7 +137,7 @@ export function WizardShell({ onComplete }: WizardShellProps) {
               <div
                 className={cn(
                   "mx-2 h-0.5 w-12 sm:w-20",
-                  i < step ? "bg-primary" : "bg-muted-foreground/30"
+                  i < step ? "bg-primary" : "bg-muted-foreground/30",
                 )}
               />
             )}
@@ -169,11 +166,7 @@ export function WizardShell({ onComplete }: WizardShellProps) {
 
       {/* Bottom navigation */}
       <div className="flex items-center justify-between border-t pt-4">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={step === 0}
-        >
+        <Button variant="outline" onClick={handleBack} disabled={step === 0}>
           Back
         </Button>
 

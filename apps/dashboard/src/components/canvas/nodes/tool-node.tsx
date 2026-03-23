@@ -14,9 +14,7 @@ function ToolNodeComponent({ data }: NodeProps) {
         <span className="text-xs uppercase font-semibold text-muted-foreground">Tool</span>
       </div>
       <div className="text-sm text-foreground mt-1">{d.name ?? "Unnamed"}</div>
-      {d.description && (
-        <div className="text-xs text-muted-foreground mt-0.5">{d.description}</div>
-      )}
+      {d.description && <div className="text-xs text-muted-foreground mt-0.5">{d.description}</div>}
     </div>
   );
 }

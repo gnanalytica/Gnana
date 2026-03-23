@@ -116,9 +116,7 @@ export function StepTools({ data, onChange }: StepToolsProps) {
     onChange({ tools: data.tools.filter((id) => id !== toolId) });
   };
 
-  const selectedToolDefs = AVAILABLE_TOOLS.filter((t) =>
-    data.tools.includes(t.id)
-  );
+  const selectedToolDefs = AVAILABLE_TOOLS.filter((t) => data.tools.includes(t.id));
 
   return (
     <div className="space-y-4">
@@ -156,9 +154,7 @@ export function StepTools({ data, onChange }: StepToolsProps) {
                       />
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{tool.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {tool.description}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{tool.description}</p>
                       </div>
                     </label>
                   ))}
@@ -177,9 +173,7 @@ export function StepTools({ data, onChange }: StepToolsProps) {
         <div className="flex-[2] space-y-4">
           <h3 className="text-sm font-medium">
             Selected Tools{" "}
-            <span className="text-muted-foreground">
-              ({data.tools.length} tools selected)
-            </span>
+            <span className="text-muted-foreground">({data.tools.length} tools selected)</span>
           </h3>
           <div className="space-y-1 min-h-[100px]">
             {selectedToolDefs.length === 0 && (
@@ -194,9 +188,7 @@ export function StepTools({ data, onChange }: StepToolsProps) {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{tool.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {tool.connector}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{tool.connector}</p>
                 </div>
                 <button
                   type="button"
@@ -227,8 +219,8 @@ export function StepTools({ data, onChange }: StepToolsProps) {
             <DialogHeader>
               <DialogTitle>Add MCP Server</DialogTitle>
               <DialogDescription>
-                Connect a Model Context Protocol server to provide additional
-                tools for your agent. This feature is coming soon.
+                Connect a Model Context Protocol server to provide additional tools for your agent.
+                This feature is coming soon.
               </DialogDescription>
             </DialogHeader>
           </DialogContent>
@@ -244,8 +236,7 @@ export function StepTools({ data, onChange }: StepToolsProps) {
             <DialogHeader>
               <DialogTitle>Add Custom Tool</DialogTitle>
               <DialogDescription>
-                Define a custom tool with its own schema and handler. This
-                feature is coming soon.
+                Define a custom tool with its own schema and handler. This feature is coming soon.
               </DialogDescription>
             </DialogHeader>
           </DialogContent>

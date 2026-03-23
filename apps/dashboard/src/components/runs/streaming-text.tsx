@@ -27,9 +27,7 @@ export function StreamingText({ text, isStreaming, className }: StreamingTextPro
       )}
     >
       {text}
-      {isStreaming && (
-        <span className="inline-block w-2 h-4 bg-primary ml-0.5 animate-pulse" />
-      )}
+      {isStreaming && <span className="inline-block w-2 h-4 bg-primary ml-0.5 animate-pulse" />}
     </div>
   );
 }

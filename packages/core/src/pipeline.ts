@@ -1,10 +1,4 @@
-import type {
-  RunContext,
-  Plan,
-  ExecutionResult,
-  StepResult,
-  Artifact,
-} from "./types.js";
+import type { RunContext, Plan, ExecutionResult, StepResult, Artifact } from "./types.js";
 
 export async function executePipeline(ctx: RunContext): Promise<void> {
   await ctx.events.emit("run:started", ctx.run);
@@ -39,7 +33,10 @@ export async function executePipeline(ctx: RunContext): Promise<void> {
   } catch (error) {
     await ctx.store.updateStatus(ctx.run.id, "failed");
     await ctx.events.emit("run:failed", { runId: ctx.run.id, error });
-    await ctx.agent.hooks?.onError?.(ctx, error instanceof Error ? error : new Error(String(error)));
+    await ctx.agent.hooks?.onError?.(
+      ctx,
+      error instanceof Error ? error : new Error(String(error)),
+    );
     throw error;
   }
 }
@@ -96,7 +93,11 @@ async function analyzePhase(ctx: RunContext): Promise<unknown> {
     const toolResults: string[] = [];
     for (const block of response.content) {
       if (block.type === "tool_use") {
-        await ctx.events.emit("run:tool_called", { runId: ctx.run.id, tool: block.name, input: block.input });
+        await ctx.events.emit("run:tool_called", {
+          runId: ctx.run.id,
+          tool: block.name,
+          input: block.input,
+        });
         await ctx.store.addLog(ctx.run.id, {
           timestamp: new Date(),
           stage: "analyzing",

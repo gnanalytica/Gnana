@@ -77,10 +77,7 @@ export function PhaseDetail({ phase, isOpen, onToggle }: PhaseDetailProps) {
               <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
                 LLM Output
               </h4>
-              <StreamingText
-                text={phase.llmOutput}
-                isStreaming={phase.isStreaming}
-              />
+              <StreamingText text={phase.llmOutput} isStreaming={phase.isStreaming} />
             </div>
           )}
 
@@ -99,16 +96,14 @@ export function PhaseDetail({ phase, isOpen, onToggle }: PhaseDetailProps) {
           )}
 
           {/* Stats row */}
-          {(phase.inputTokens != null ||
-            phase.outputTokens != null ||
-            phase.duration) && (
+          {(phase.inputTokens != null || phase.outputTokens != null || phase.duration) && (
             <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-border">
               {phase.inputTokens != null && phase.outputTokens != null && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Cpu className="h-3.5 w-3.5" />
                   <span className="tabular-nums">
-                    {phase.inputTokens.toLocaleString()} in /{" "}
-                    {phase.outputTokens.toLocaleString()} out
+                    {phase.inputTokens.toLocaleString()} in / {phase.outputTokens.toLocaleString()}{" "}
+                    out
                   </span>
                 </div>
               )}

@@ -106,10 +106,7 @@ function splitModelValue(value: string): { provider: string; model: string } {
 export function StepModels({ data, onChange }: StepModelsProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const updatePhase = (
-    phase: "analysis" | "planning" | "execution",
-    value: string
-  ) => {
+  const updatePhase = (phase: "analysis" | "planning" | "execution", value: string) => {
     const { provider, model } = splitModelValue(value);
     const current = data.llmConfig[phase] || { provider: "", model: "" };
     onChange({
@@ -123,7 +120,7 @@ export function StepModels({ data, onChange }: StepModelsProps) {
   const updatePhaseAdvanced = (
     phase: "analysis" | "planning" | "execution",
     field: "temperature" | "maxTokens",
-    value: number | undefined
+    value: number | undefined,
   ) => {
     const current = data.llmConfig[phase] || {
       provider: "",
@@ -158,11 +155,7 @@ export function StepModels({ data, onChange }: StepModelsProps) {
       <ModelSelector
         label="Execution Model"
         description="Which model should execute? (defaults to analysis model)"
-        value={
-          data.llmConfig.execution
-            ? parseModelValue(data.llmConfig.execution)
-            : ""
-        }
+        value={data.llmConfig.execution ? parseModelValue(data.llmConfig.execution) : ""}
         onValueChange={(v) => updatePhase("execution", v)}
       />
 
@@ -175,10 +168,7 @@ export function StepModels({ data, onChange }: StepModelsProps) {
         >
           Advanced Settings
           <ChevronDown
-            className={cn(
-              "h-4 w-4 transition-transform",
-              advancedOpen && "rotate-180"
-            )}
+            className={cn("h-4 w-4 transition-transform", advancedOpen && "rotate-180")}
           />
         </button>
 
@@ -193,9 +183,7 @@ export function StepModels({ data, onChange }: StepModelsProps) {
                   <p className="text-sm font-medium capitalize">{phase}</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs">
-                        Temperature: {config?.temperature ?? 0.7}
-                      </Label>
+                      <Label className="text-xs">Temperature: {config?.temperature ?? 0.7}</Label>
                       <input
                         type="range"
                         min="0"
@@ -203,11 +191,7 @@ export function StepModels({ data, onChange }: StepModelsProps) {
                         step="0.1"
                         value={config?.temperature ?? 0.7}
                         onChange={(e) =>
-                          updatePhaseAdvanced(
-                            phase,
-                            "temperature",
-                            parseFloat(e.target.value)
-                          )
+                          updatePhaseAdvanced(phase, "temperature", parseFloat(e.target.value))
                         }
                         className="w-full accent-primary"
                       />
@@ -226,9 +210,7 @@ export function StepModels({ data, onChange }: StepModelsProps) {
                           updatePhaseAdvanced(
                             phase,
                             "maxTokens",
-                            e.target.value
-                              ? parseInt(e.target.value, 10)
-                              : undefined
+                            e.target.value ? parseInt(e.target.value, 10) : undefined,
                           )
                         }
                       />

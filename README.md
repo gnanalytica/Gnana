@@ -39,16 +39,16 @@ Gnana (Sanskrit: knowledge/wisdom) is a standalone agent orchestration framework
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@gnana/core` | Agent runtime, pipeline engine, tool system, hooks |
-| `@gnana/server` | HTTP + WebSocket server (Hono) |
-| `@gnana/client` | TypeScript SDK for consumers |
-| `@gnana/db` | Database schema + migrations (Drizzle) |
-| `@gnana/provider-anthropic` | Claude provider |
-| `@gnana/provider-google` | Gemini provider |
-| `@gnana/provider-openai` | OpenAI + OpenRouter provider |
-| `@gnana/mcp` | MCP client integration |
+| Package                     | Description                                        |
+| --------------------------- | -------------------------------------------------- |
+| `@gnana/core`               | Agent runtime, pipeline engine, tool system, hooks |
+| `@gnana/server`             | HTTP + WebSocket server (Hono)                     |
+| `@gnana/client`             | TypeScript SDK for consumers                       |
+| `@gnana/db`                 | Database schema + migrations (Drizzle)             |
+| `@gnana/provider-anthropic` | Claude provider                                    |
+| `@gnana/provider-google`    | Gemini provider                                    |
+| `@gnana/provider-openai`    | OpenAI + OpenRouter provider                       |
+| `@gnana/mcp`                | MCP client integration                             |
 
 ## Quick Start
 

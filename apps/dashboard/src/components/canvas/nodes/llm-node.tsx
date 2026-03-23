@@ -18,17 +18,19 @@ function LLMNodeComponent({ data }: NodeProps) {
   const Icon = config.icon;
 
   return (
-    <div className={`bg-card border-2 border-${config.color} rounded-lg p-4 min-w-[160px] shadow-md`}>
+    <div
+      className={`bg-card border-2 border-${config.color} rounded-lg p-4 min-w-[160px] shadow-md`}
+    >
       <Handle type="target" position={Position.Left} className={`!bg-${config.color}`} />
       <Handle type="source" position={Position.Right} className={`!bg-${config.color}`} />
       <div className="flex items-center gap-2">
         <Icon className={`h-4 w-4 text-${config.color}`} />
-        <span className={`text-xs uppercase font-semibold text-${config.color}`}>{config.label}</span>
+        <span className={`text-xs uppercase font-semibold text-${config.color}`}>
+          {config.label}
+        </span>
       </div>
       <div className="text-sm text-foreground mt-1">{d.model ?? "No model"}</div>
-      {d.provider && (
-        <div className="text-xs text-muted-foreground">{d.provider}</div>
-      )}
+      {d.provider && <div className="text-xs text-muted-foreground">{d.provider}</div>}
       {typeof d.toolCount === "number" && d.toolCount > 0 && (
         <div className="mt-1">
           <span className="text-xs bg-muted text-muted-foreground rounded px-1.5 py-0.5">

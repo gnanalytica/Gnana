@@ -60,16 +60,11 @@ export function RunFiltersBar({ onFilterChange }: RunFiltersProps) {
   }
 
   const hasActiveFilters =
-    filters.status !== "all" ||
-    filters.agent !== "all" ||
-    filters.triggerType !== "all";
+    filters.status !== "all" || filters.agent !== "all" || filters.triggerType !== "all";
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Select
-        value={filters.status}
-        onValueChange={(v) => updateFilter("status", v)}
-      >
+      <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
@@ -82,10 +77,7 @@ export function RunFiltersBar({ onFilterChange }: RunFiltersProps) {
         </SelectContent>
       </Select>
 
-      <Select
-        value={filters.agent}
-        onValueChange={(v) => updateFilter("agent", v)}
-      >
+      <Select value={filters.agent} onValueChange={(v) => updateFilter("agent", v)}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="All Agents" />
         </SelectTrigger>
@@ -98,10 +90,7 @@ export function RunFiltersBar({ onFilterChange }: RunFiltersProps) {
         </SelectContent>
       </Select>
 
-      <Select
-        value={filters.triggerType}
-        onValueChange={(v) => updateFilter("triggerType", v)}
-      >
+      <Select value={filters.triggerType} onValueChange={(v) => updateFilter("triggerType", v)}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="All Triggers" />
         </SelectTrigger>

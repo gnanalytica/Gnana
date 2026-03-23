@@ -119,6 +119,7 @@ gnana/
 ### Task 1: Root workspace configuration
 
 **Files:**
+
 - Create: `package.json`
 - Create: `pnpm-workspace.yaml`
 - Create: `turbo.json`
@@ -253,6 +254,7 @@ git commit -m "chore: monorepo foundation — pnpm, turborepo, typescript, prett
 ### Task 2: Scaffold @gnana/providers/base — shared types
 
 **Files:**
+
 - Create: `packages/providers/base/package.json`
 - Create: `packages/providers/base/tsconfig.json`
 - Create: `packages/providers/base/src/index.ts`
@@ -422,6 +424,7 @@ git commit -m "feat: @gnana/provider-base — shared LLM provider types and inte
 ### Task 3: Scaffold @gnana/core — types and event bus
 
 **Files:**
+
 - Create: `packages/core/package.json`
 - Create: `packages/core/tsconfig.json`
 - Create: `packages/core/src/types.ts`
@@ -645,8 +648,25 @@ export interface EventBus {
 }
 
 export interface LLMRouter {
-  chat(taskType: string, params: { systemPrompt: string; messages: import("@gnana/provider-base").Message[]; maxTokens?: number; temperature?: number }): Promise<ChatResponse>;
-  chatWithTools(taskType: string, params: { systemPrompt: string; messages: import("@gnana/provider-base").Message[]; tools: LLMToolDef[]; maxTokens?: number; temperature?: number }): Promise<ChatResponse>;
+  chat(
+    taskType: string,
+    params: {
+      systemPrompt: string;
+      messages: import("@gnana/provider-base").Message[];
+      maxTokens?: number;
+      temperature?: number;
+    },
+  ): Promise<ChatResponse>;
+  chatWithTools(
+    taskType: string,
+    params: {
+      systemPrompt: string;
+      messages: import("@gnana/provider-base").Message[];
+      tools: LLMToolDef[];
+      maxTokens?: number;
+      temperature?: number;
+    },
+  ): Promise<ChatResponse>;
 }
 
 export interface ToolExecutor {
@@ -786,6 +806,7 @@ git commit -m "feat: @gnana/core — types, event bus with tests"
 ### Task 4: Hook system
 
 **Files:**
+
 - Create: `packages/core/src/hooks.ts`
 - Create: `packages/core/src/__tests__/hooks.test.ts`
 
@@ -896,6 +917,7 @@ export async function runToolHook(
 - [ ] **Step 4: Export from index.ts**
 
 Add to `packages/core/src/index.ts`:
+
 ```typescript
 export { runHook, runToolHook } from "./hooks.js";
 ```
@@ -917,6 +939,7 @@ git commit -m "feat: @gnana/core — hook system with lifecycle and tool hooks"
 ### Task 5: Tool executor
 
 **Files:**
+
 - Create: `packages/core/src/tool-executor.ts`
 - Create: `packages/core/src/__tests__/tool-executor.test.ts`
 
@@ -1025,6 +1048,7 @@ export function createToolExecutor(tools: ToolDefinition[]): ToolExecutor {
 - [ ] **Step 4: Export from index.ts**
 
 Add to `packages/core/src/index.ts`:
+
 ```typescript
 export { createToolExecutor } from "./tool-executor.js";
 ```
@@ -1046,6 +1070,7 @@ git commit -m "feat: @gnana/core — tool executor with custom tool support"
 ### Task 6: LLM Router
 
 **Files:**
+
 - Create: `packages/core/src/llm-router.ts`
 - Create: `packages/core/src/__tests__/llm-router.test.ts`
 
@@ -1098,9 +1123,9 @@ describe("LLMRouter", () => {
 
   it("throws if task type has no route", async () => {
     const router = createLLMRouter({ routes: {} }, new Map());
-    await expect(
-      router.chat("unknown", { systemPrompt: "t", messages: [] }),
-    ).rejects.toThrow("No route configured for task: unknown");
+    await expect(router.chat("unknown", { systemPrompt: "t", messages: [] })).rejects.toThrow(
+      "No route configured for task: unknown",
+    );
   });
 
   it("throws if provider not registered", async () => {
@@ -1108,9 +1133,9 @@ describe("LLMRouter", () => {
       { routes: { analysis: { provider: "missing", model: "x" } } },
       new Map(),
     );
-    await expect(
-      router.chat("analysis", { systemPrompt: "t", messages: [] }),
-    ).rejects.toThrow("Provider not found: missing");
+    await expect(router.chat("analysis", { systemPrompt: "t", messages: [] })).rejects.toThrow(
+      "Provider not found: missing",
+    );
   });
 
   it("uses fallback chain when primary provider fails", async () => {
@@ -1248,6 +1273,7 @@ export function createLLMRouter(
 - [ ] **Step 4: Export from index.ts**
 
 Add to `packages/core/src/index.ts`:
+
 ```typescript
 export { createLLMRouter, type RouterConfig, type RouteConfig } from "./llm-router.js";
 ```
@@ -1271,6 +1297,7 @@ git commit -m "feat: @gnana/core — LLM router with fallback chain support"
 ### Task 7: Pipeline engine
 
 **Files:**
+
 - Create: `packages/core/src/pipeline.ts`
 - Create: `packages/core/src/__tests__/pipeline.test.ts`
 
@@ -1342,11 +1369,13 @@ function createMockContext(overrides: Partial<RunContext> = {}): RunContext {
     agent,
     trigger: { type: "manual", data: {} },
     llm: {
-      chat: vi.fn()
+      chat: vi
+        .fn()
         .mockResolvedValueOnce(analysisResponse)
         .mockResolvedValueOnce(planResponse)
         .mockResolvedValue(executeResponse),
-      chatWithTools: vi.fn()
+      chatWithTools: vi
+        .fn()
         .mockResolvedValueOnce(analysisResponse)
         .mockResolvedValueOnce(planResponse)
         .mockResolvedValue(executeResponse),
@@ -1419,7 +1448,7 @@ Expected: FAIL — `executePipeline` not found.
 
 `packages/core/src/pipeline.ts`:
 
-```typescript
+````typescript
 import type { RunContext, Plan, ExecutionResult, StepResult } from "./types.js";
 import type { ContentBlock, ToolUseBlock, Message } from "@gnana/provider-base";
 import { runHook } from "./hooks.js";
@@ -1472,19 +1501,16 @@ async function analyzePhase(ctx: RunContext): Promise<unknown> {
       }
 
       // Handle tool calls
-      const toolUses = response.content.filter(
-        (b): b is ToolUseBlock => b.type === "tool_use",
-      );
+      const toolUses = response.content.filter((b): b is ToolUseBlock => b.type === "tool_use");
       messages.push({ role: "assistant", content: response.content });
 
       const toolResults: ContentBlock[] = [];
       for (const toolUse of toolUses) {
         await ctx.events.emit("run:tool_called", { toolName: toolUse.name, input: toolUse.input });
-        const result = await ctx.tools.execute(
-          toolUse.name,
-          toolUse.input,
-          { runId: ctx.run.id, agentId: ctx.agent.id },
-        );
+        const result = await ctx.tools.execute(toolUse.name, toolUse.input, {
+          runId: ctx.run.id,
+          agentId: ctx.agent.id,
+        });
         await ctx.events.emit("run:tool_result", { toolName: toolUse.name, result });
         toolResults.push({ type: "tool_result", toolUseId: toolUse.id, content: result });
       }
@@ -1598,7 +1624,12 @@ export async function executePipeline(ctx: RunContext): Promise<void> {
     await ctx.store.updateError(ctx.run.id, message);
     await ctx.store.updateStatus(ctx.run.id, "failed");
     await ctx.events.emit("run:failed", { runId: ctx.run.id, error: message });
-    await runHook(ctx.agent.hooks, "onError", ctx, error instanceof Error ? error : new Error(message));
+    await runHook(
+      ctx.agent.hooks,
+      "onError",
+      ctx,
+      error instanceof Error ? error : new Error(message),
+    );
   }
 }
 
@@ -1618,14 +1649,20 @@ export async function resumePipeline(ctx: RunContext, plan: Plan): Promise<void>
     await ctx.store.updateError(ctx.run.id, message);
     await ctx.store.updateStatus(ctx.run.id, "failed");
     await ctx.events.emit("run:failed", { runId: ctx.run.id, error: message });
-    await runHook(ctx.agent.hooks, "onError", ctx, error instanceof Error ? error : new Error(message));
+    await runHook(
+      ctx.agent.hooks,
+      "onError",
+      ctx,
+      error instanceof Error ? error : new Error(message),
+    );
   }
 }
-```
+````
 
 - [ ] **Step 4: Export from index.ts**
 
 Add to `packages/core/src/index.ts`:
+
 ```typescript
 export { executePipeline, resumePipeline } from "./pipeline.js";
 ```
@@ -1649,6 +1686,7 @@ git commit -m "feat: @gnana/core — pipeline engine with analyze, plan, approve
 ### Task 8: Anthropic provider
 
 **Files:**
+
 - Create: `packages/providers/anthropic/package.json`
 - Create: `packages/providers/anthropic/tsconfig.json`
 - Create: `packages/providers/anthropic/src/index.ts`
@@ -1834,17 +1872,22 @@ export class AnthropicProvider implements LLMProvider {
       system: params.systemPrompt,
       messages: params.messages.map((m) => ({
         role: m.role,
-        content: typeof m.content === "string"
-          ? m.content
-          : m.content.map((b) => {
-              if (b.type === "tool_result") {
-                return { type: "tool_result" as const, tool_use_id: b.toolUseId, content: b.content };
-              }
-              if (b.type === "tool_use") {
-                return { type: "tool_use" as const, id: b.id, name: b.name, input: b.input };
-              }
-              return { type: "text" as const, text: b.text };
-            }),
+        content:
+          typeof m.content === "string"
+            ? m.content
+            : m.content.map((b) => {
+                if (b.type === "tool_result") {
+                  return {
+                    type: "tool_result" as const,
+                    tool_use_id: b.toolUseId,
+                    content: b.content,
+                  };
+                }
+                if (b.type === "tool_use") {
+                  return { type: "tool_use" as const, id: b.id, name: b.name, input: b.input };
+                }
+                return { type: "text" as const, text: b.text };
+              }),
       })),
       tools: params.tools.map((t) => ({
         name: t.name,
@@ -1901,9 +1944,24 @@ export class AnthropicProvider implements LLMProvider {
 
   listModels(): ModelInfo[] {
     return [
-      { id: "claude-opus-4-20250514", name: "Claude Opus 4", contextWindow: 200000, maxOutputTokens: 32000 },
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", contextWindow: 200000, maxOutputTokens: 16000 },
-      { id: "claude-haiku-4-20250514", name: "Claude Haiku 4", contextWindow: 200000, maxOutputTokens: 8192 },
+      {
+        id: "claude-opus-4-20250514",
+        name: "Claude Opus 4",
+        contextWindow: 200000,
+        maxOutputTokens: 32000,
+      },
+      {
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet 4",
+        contextWindow: 200000,
+        maxOutputTokens: 16000,
+      },
+      {
+        id: "claude-haiku-4-20250514",
+        name: "Claude Haiku 4",
+        contextWindow: 200000,
+        maxOutputTokens: 8192,
+      },
     ];
   }
 }
@@ -1926,6 +1984,7 @@ git commit -m "feat: @gnana/provider-anthropic — Claude provider with tool sup
 ### Task 9: Google provider
 
 **Files:**
+
 - Create: `packages/providers/google/package.json`
 - Create: `packages/providers/google/tsconfig.json`
 - Create: `packages/providers/google/src/index.ts`
@@ -1948,6 +2007,7 @@ Run: `pnpm install && pnpm --filter @gnana/provider-google test`
 - [ ] **Step 5: Implement GoogleProvider**
 
 `packages/providers/google/src/index.ts`:
+
 - Import from `@google/genai`
 - Implement `LLMProvider` interface
 - Normalize `generateContent` responses to `ChatResponse`
@@ -1968,6 +2028,7 @@ git commit -m "feat: @gnana/provider-google — Gemini provider with function ca
 ### Task 10: OpenAI provider (+ OpenRouter)
 
 **Files:**
+
 - Create: `packages/providers/openai/package.json`
 - Create: `packages/providers/openai/tsconfig.json`
 - Create: `packages/providers/openai/src/index.ts`
@@ -1982,6 +2043,7 @@ Same structure, with `"openai": "^4.77.0"` dependency.
 - [ ] **Step 3: Write test** (mock openai SDK, test both OpenAI and OpenRouter modes)
 
 `packages/providers/openai/src/__tests__/openai.test.ts`:
+
 - Test normal OpenAI usage
 - Test OpenRouter mode (different baseURL, same SDK)
 - Verify function calling normalization
@@ -1991,6 +2053,7 @@ Same structure, with `"openai": "^4.77.0"` dependency.
 - [ ] **Step 5: Implement OpenAIProvider**
 
 `packages/providers/openai/src/index.ts`:
+
 - Constructor accepts `apiKey` and optional `options: { baseURL?: string }`
 - OpenRouter uses `baseURL: "https://openrouter.ai/api/v1"`
 - Normalize `chat.completions.create` responses
@@ -2013,6 +2076,7 @@ git commit -m "feat: @gnana/provider-openai — OpenAI + OpenRouter provider"
 ### Task 11: @gnana/db — Drizzle schema
 
 **Files:**
+
 - Create: `packages/db/package.json`
 - Create: `packages/db/tsconfig.json`
 - Create: `packages/db/drizzle.config.ts`
@@ -2063,6 +2127,7 @@ git commit -m "feat: @gnana/provider-openai — OpenAI + OpenRouter provider"
 - [ ] **Step 2: Create tsconfig.json and drizzle.config.ts**
 
 `packages/db/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.base.json",
@@ -2075,6 +2140,7 @@ git commit -m "feat: @gnana/provider-openai — OpenAI + OpenRouter provider"
 ```
 
 `packages/db/drizzle.config.ts`:
+
 ```typescript
 import { defineConfig } from "drizzle-kit";
 
@@ -2091,6 +2157,7 @@ export default defineConfig({
 - [ ] **Step 3: Write workspaces schema**
 
 `packages/db/src/schema/workspaces.ts`:
+
 ```typescript
 import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
 
@@ -2106,6 +2173,7 @@ export const workspaces = pgTable("workspaces", {
 - [ ] **Step 4: Write agents schema**
 
 `packages/db/src/schema/agents.ts`:
+
 ```typescript
 import { pgTable, uuid, varchar, text, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { workspaces } from "./workspaces.js";
@@ -2127,17 +2195,25 @@ export const agents = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("agents_workspace_idx").on(table.workspaceId),
-  ],
+  (table) => [index("agents_workspace_idx").on(table.workspaceId)],
 );
 ```
 
 - [ ] **Step 5: Write runs schema**
 
 `packages/db/src/schema/runs.ts`:
+
 ```typescript
-import { pgTable, uuid, varchar, text, jsonb, integer, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  jsonb,
+  integer,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { agents } from "./agents.js";
 import { workspaces } from "./workspaces.js";
 
@@ -2146,7 +2222,9 @@ export const runs = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
-    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
     status: varchar("status", { length: 30 }).notNull().default("queued"),
     triggerType: varchar("trigger_type", { length: 30 }).notNull(),
     triggerData: jsonb("trigger_data").notNull().default({}),
@@ -2170,15 +2248,15 @@ export const runLogs = pgTable(
   "run_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    runId: uuid("run_id").notNull().references(() => runs.id, { onDelete: "cascade" }),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => runs.id, { onDelete: "cascade" }),
     stage: varchar("stage", { length: 30 }).notNull(),
     type: varchar("type", { length: 30 }).notNull(), // "tool_call", "tool_result", "llm_call", "status_change"
     data: jsonb("data").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("run_logs_run_idx").on(table.runId),
-  ],
+  (table) => [index("run_logs_run_idx").on(table.runId)],
 );
 ```
 
@@ -2191,6 +2269,7 @@ export const runLogs = pgTable(
 - [ ] **Step 7: Create barrel exports**
 
 `packages/db/src/schema/index.ts`:
+
 ```typescript
 export * from "./workspaces.js";
 export * from "./agents.js";
@@ -2201,6 +2280,7 @@ export * from "./api-keys.js";
 ```
 
 `packages/db/src/index.ts`:
+
 ```typescript
 export * from "./schema/index.js";
 ```
@@ -2224,6 +2304,7 @@ git commit -m "feat: @gnana/db — Drizzle schema for agents, runs, connectors, 
 ### Task 12: Server scaffold and auth middleware
 
 **Files:**
+
 - Create: `packages/server/package.json`
 - Create: `packages/server/tsconfig.json`
 - Create: `packages/server/src/app.ts`
@@ -2275,6 +2356,7 @@ git commit -m "feat: @gnana/db — Drizzle schema for agents, runs, connectors, 
 - [ ] **Step 3: Write auth middleware test**
 
 `packages/server/src/__tests__/middleware/auth.test.ts`:
+
 ```typescript
 import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
@@ -2319,6 +2401,7 @@ describe("apiKeyAuth", () => {
 - [ ] **Step 5: Implement auth middleware**
 
 `packages/server/src/middleware/auth.ts`:
+
 ```typescript
 import type { MiddlewareHandler } from "hono";
 
@@ -2347,6 +2430,7 @@ git commit -m "feat: @gnana/server — Hono scaffold with API key auth middlewar
 ### Task 13: Agent CRUD routes
 
 **Files:**
+
 - Create: `packages/server/src/routes/agents.ts`
 - Create: `packages/server/src/__tests__/routes/agents.test.ts`
 
@@ -2376,6 +2460,7 @@ git commit -m "feat: @gnana/server — agent CRUD API routes"
 ### Task 14: Run management routes
 
 **Files:**
+
 - Create: `packages/server/src/routes/runs.ts`
 - Create: `packages/server/src/__tests__/routes/runs.test.ts`
 
@@ -2404,11 +2489,13 @@ git commit -m "feat: @gnana/server — run management routes with pipeline integ
 ### Task 15: WebSocket subscriptions
 
 **Files:**
+
 - Create: `packages/server/src/ws/runs.ts`
 
 - [ ] **Step 1: Implement WebSocket handler**
 
 `packages/server/src/ws/runs.ts`:
+
 - Use Hono's `upgradeWebSocket` helper
 - Subscribe to EventBus events for a specific run ID
 - Push JSON messages to connected clients on status changes
@@ -2417,6 +2504,7 @@ git commit -m "feat: @gnana/server — run management routes with pipeline integ
 - [ ] **Step 2: Wire into app.ts**
 
 Create `packages/server/src/app.ts`:
+
 - Mount agent routes at `/api/agents`
 - Mount run routes at `/api/runs`
 - Mount WebSocket at `/ws/runs/:id`
@@ -2425,6 +2513,7 @@ Create `packages/server/src/app.ts`:
 - [ ] **Step 3: Create server factory**
 
 `packages/server/src/index.ts`:
+
 ```typescript
 export { createGnanaServer } from "./app.js";
 ```
@@ -2445,6 +2534,7 @@ git commit -m "feat: @gnana/server — WebSocket subscriptions and server factor
 ### Task 16: @gnana/client — TypeScript SDK
 
 **Files:**
+
 - Create: `packages/client/package.json`
 - Create: `packages/client/tsconfig.json`
 - Create: `packages/client/src/client.ts`
@@ -2535,6 +2625,7 @@ describe("GnanaClient", () => {
 - [ ] **Step 5: Implement client**
 
 `packages/client/src/client.ts`:
+
 ```typescript
 import { AgentsResource } from "./resources/agents.js";
 import { RunsResource } from "./resources/runs.js";
@@ -2593,6 +2684,7 @@ git commit -m "feat: @gnana/client — TypeScript SDK with agents, runs, connect
 ### Task 17: Full build and integration verification
 
 **Files:**
+
 - Modify: `packages/core/src/index.ts` (ensure all exports)
 
 - [ ] **Step 1: Run full monorepo build**
@@ -2626,13 +2718,13 @@ git commit -m "chore: Phase 1 complete — full build, tests, and typecheck pass
 
 ## Summary
 
-| Chunk | Tasks | What it delivers |
-|-------|-------|-----------------|
-| 1: Monorepo Foundation | 1-3 | pnpm workspace, Turborepo, shared TS config, provider base types, core types + event bus |
-| 2: Core Components | 4-6 | Hook system, tool executor, LLM router — all with tests |
-| 3: Pipeline Engine | 7 | 4-phase pipeline with tool calling, approval gate, error handling |
-| 4: LLM Providers | 8-10 | Anthropic, Google, OpenAI/OpenRouter providers — all with tests |
-| 5: Database Schema | 11 | Full Drizzle schema for agents, runs, connectors, providers, API keys |
-| 6: Hono Server | 12-15 | REST API (agents, runs), WebSocket, auth middleware — all with tests |
-| 7: Client SDK | 16 | TypeScript client with fetch + WebSocket subscription |
-| 8: Integration | 17 | Full build, test, typecheck verification |
+| Chunk                  | Tasks | What it delivers                                                                         |
+| ---------------------- | ----- | ---------------------------------------------------------------------------------------- |
+| 1: Monorepo Foundation | 1-3   | pnpm workspace, Turborepo, shared TS config, provider base types, core types + event bus |
+| 2: Core Components     | 4-6   | Hook system, tool executor, LLM router — all with tests                                  |
+| 3: Pipeline Engine     | 7     | 4-phase pipeline with tool calling, approval gate, error handling                        |
+| 4: LLM Providers       | 8-10  | Anthropic, Google, OpenAI/OpenRouter providers — all with tests                          |
+| 5: Database Schema     | 11    | Full Drizzle schema for agents, runs, connectors, providers, API keys                    |
+| 6: Hono Server         | 12-15 | REST API (agents, runs), WebSocket, auth middleware — all with tests                     |
+| 7: Client SDK          | 16    | TypeScript client with fetch + WebSocket subscription                                    |
+| 8: Integration         | 17    | Full build, test, typecheck verification                                                 |

@@ -18,9 +18,7 @@ export function AgentCard({ agent }: AgentCardProps) {
       <Card className="h-full transition-colors group-hover:border-primary/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">{agent.name}</CardTitle>
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {agent.description}
-          </p>
+          <p className="text-sm text-muted-foreground line-clamp-2">{agent.description}</p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="text-xs">

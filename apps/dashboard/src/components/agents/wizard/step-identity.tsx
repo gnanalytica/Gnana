@@ -46,10 +46,7 @@ export function StepIdentity({ data, onChange }: StepIdentityProps) {
       {/* Template selector */}
       <div className="space-y-2">
         <Label htmlFor="template">Start from template</Label>
-        <Select
-          value={data.template || ""}
-          onValueChange={handleTemplateChange}
-        >
+        <Select value={data.template || ""} onValueChange={handleTemplateChange}>
           <SelectTrigger id="template">
             <SelectValue placeholder="Choose a template..." />
           </SelectTrigger>

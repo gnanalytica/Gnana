@@ -10,9 +10,10 @@ export function useRunStream(runId: string | null) {
 
   const connect = useCallback(() => {
     if (!runId) return;
-    const baseUrl = (
-      process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000"
-    ).replace(/^http/, "ws");
+    const baseUrl = (process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000").replace(
+      /^http/,
+      "ws",
+    );
     const ws = new WebSocket(`${baseUrl}/ws/runs/${runId}`);
 
     ws.onopen = () => setIsConnected(true);

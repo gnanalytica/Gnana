@@ -1,7 +1,13 @@
 "use client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
 interface ConfigDrawerProps {
@@ -30,7 +36,9 @@ export function ConfigDrawer({ isOpen, onClose, nodeData, onUpdate }: ConfigDraw
                   defaultValue={nodeData.model}
                   onValueChange={(value) => onUpdate({ model: value })}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="claude-sonnet-4-20250514">Claude Sonnet 4</SelectItem>
                     <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
@@ -67,7 +75,9 @@ export function ConfigDrawer({ isOpen, onClose, nodeData, onUpdate }: ConfigDraw
                 defaultValue={nodeData.triggerType ?? "manual"}
                 onValueChange={(value) => onUpdate({ triggerType: value })}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual">Manual</SelectItem>
                   <SelectItem value="webhook">Webhook</SelectItem>

@@ -22,6 +22,7 @@ Create a new package in the Gnana monorepo.
 3. Create the following files:
 
 ### package.json
+
 ```json
 {
   "name": "@gnana/<package-name>",
@@ -52,6 +53,7 @@ Create a new package in the Gnana monorepo.
 Adjust devDependencies to use the versions from the root package.json catalog if available.
 
 ### tsconfig.json
+
 ```json
 {
   "extends": "../../tsconfig.base.json",
@@ -66,6 +68,7 @@ Adjust devDependencies to use the versions from the root package.json catalog if
 Adjust the `extends` path based on nesting depth (e.g., `../../../tsconfig.base.json` for providers).
 
 ### src/index.ts
+
 ```typescript
 // @gnana/<package-name>
 ```

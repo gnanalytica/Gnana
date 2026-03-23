@@ -69,15 +69,12 @@ export function Sidebar() {
         onMouseLeave={handleMouseLeave}
         className={cn(
           "h-screen flex flex-col bg-card border-r border-border overflow-hidden transition-all duration-200 ease-in-out shrink-0",
-          isCollapsed ? "w-12" : "w-[220px]"
+          isCollapsed ? "w-12" : "w-[220px]",
         )}
       >
         {/* Logo */}
         <div
-          className={cn(
-            "flex items-center h-14 shrink-0",
-            isCollapsed ? "justify-center" : "px-3"
-          )}
+          className={cn("flex items-center h-14 shrink-0", isCollapsed ? "justify-center" : "px-3")}
         >
           <span className="text-primary font-bold text-lg whitespace-nowrap">
             {isCollapsed ? "\u2B21" : "\u2B21 Gnana"}
@@ -86,10 +83,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav
-          className={cn(
-            "flex-1 flex flex-col gap-1 py-2",
-            isCollapsed ? "items-center" : "px-2"
-          )}
+          className={cn("flex-1 flex flex-col gap-1 py-2", isCollapsed ? "items-center" : "px-2")}
         >
           {navItems.map((item) => (
             <SidebarItem
@@ -103,19 +97,9 @@ export function Sidebar() {
         </nav>
 
         {/* Bottom section */}
-        <div
-          className={cn(
-            "shrink-0 pb-3",
-            isCollapsed ? "px-1" : "px-2"
-          )}
-        >
+        <div className={cn("shrink-0 pb-3", isCollapsed ? "px-1" : "px-2")}>
           <Separator className="mb-2" />
-          <div
-            className={cn(
-              "flex flex-col gap-1",
-              isCollapsed ? "items-center" : ""
-            )}
-          >
+          <div className={cn("flex flex-col gap-1", isCollapsed ? "items-center" : "")}>
             <ThemeToggle isCollapsed={isCollapsed} />
 
             {/* Pin/Unpin button — visible when expanded */}
@@ -140,7 +124,7 @@ export function Sidebar() {
                 onClick={toggleCollapse}
                 className={cn(
                   "flex items-center gap-3 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-accent-foreground",
-                  isCollapsed ? "justify-center w-10 h-10" : "px-3 py-2"
+                  isCollapsed ? "justify-center w-10 h-10" : "px-3 py-2",
                 )}
                 aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
@@ -149,9 +133,7 @@ export function Sidebar() {
                 ) : (
                   <ChevronLeft className="h-4 w-4 shrink-0" />
                 )}
-                {!isCollapsed && (
-                  <span className="truncate">Collapse</span>
-                )}
+                {!isCollapsed && <span className="truncate">Collapse</span>}
               </button>
             )}
           </div>

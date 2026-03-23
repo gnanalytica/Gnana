@@ -82,9 +82,24 @@ export class AnthropicProvider implements LLMProvider {
 
   listModels(): ModelInfo[] {
     return [
-      { id: "claude-opus-4-20250514", name: "Claude Opus 4", contextWindow: 200000, maxOutputTokens: 32000 },
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", contextWindow: 200000, maxOutputTokens: 16000 },
-      { id: "claude-haiku-4-20250514", name: "Claude Haiku 4", contextWindow: 200000, maxOutputTokens: 8192 },
+      {
+        id: "claude-opus-4-20250514",
+        name: "Claude Opus 4",
+        contextWindow: 200000,
+        maxOutputTokens: 32000,
+      },
+      {
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet 4",
+        contextWindow: 200000,
+        maxOutputTokens: 16000,
+      },
+      {
+        id: "claude-haiku-4-20250514",
+        name: "Claude Haiku 4",
+        contextWindow: 200000,
+        maxOutputTokens: 8192,
+      },
     ];
   }
 
@@ -135,7 +150,12 @@ export class AnthropicProvider implements LLMProvider {
 
     return {
       content,
-      stopReason: response.stop_reason === "tool_use" ? "tool_use" : response.stop_reason === "max_tokens" ? "max_tokens" : "end_turn",
+      stopReason:
+        response.stop_reason === "tool_use"
+          ? "tool_use"
+          : response.stop_reason === "max_tokens"
+            ? "max_tokens"
+            : "end_turn",
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,

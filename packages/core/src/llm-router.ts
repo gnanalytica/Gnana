@@ -11,9 +11,7 @@ export class LLMRouterImpl implements ILLMRouter {
   }
 
   async chat(taskType: string, params: Omit<ChatParams, "model">): Promise<ChatResponse> {
-    return this.routeRequest(taskType, (provider, model) =>
-      provider.chat({ ...params, model }),
-    );
+    return this.routeRequest(taskType, (provider, model) => provider.chat({ ...params, model }));
   }
 
   async chatWithTools(

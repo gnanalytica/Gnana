@@ -66,9 +66,7 @@ export default function ProvidersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Providers</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage LLM provider connections.
-          </p>
+          <p className="text-muted-foreground mt-1">Manage LLM provider connections.</p>
         </div>
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4" />
@@ -106,9 +104,7 @@ export default function ProvidersPage() {
                   <Badge
                     variant={provider.status === "active" ? "default" : "secondary"}
                     className={
-                      provider.status === "active"
-                        ? "bg-green-600 hover:bg-green-600/80"
-                        : ""
+                      provider.status === "active" ? "bg-green-600 hover:bg-green-600/80" : ""
                     }
                   >
                     {provider.status === "active" ? "Active" : "Inactive"}
@@ -130,9 +126,7 @@ export default function ProvidersPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Provider</DialogTitle>
-            <DialogDescription>
-              Connect a new LLM provider to your workspace.
-            </DialogDescription>
+            <DialogDescription>Connect a new LLM provider to your workspace.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
