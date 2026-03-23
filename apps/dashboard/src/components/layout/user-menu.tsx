@@ -82,7 +82,7 @@ export function UserMenu({ isCollapsed }: UserMenuProps) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => signOut()}
+          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
           className="flex items-center gap-2 cursor-pointer"
         >
           <LogOut className="h-4 w-4" />
