@@ -1,7 +1,7 @@
 # Gnana Server — Fly.io configuration
 # Docs: https://fly.io/docs/reference/configuration/
 
-app = "gnana-server"
+app = "app-wandering-flower-7498"
 primary_region = "iad"
 
 [build]
