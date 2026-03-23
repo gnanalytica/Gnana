@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { executePipeline, resumePipeline, rejectRun } from "../pipeline.js";
 import { createEventBus } from "../event-bus.js";
 import type {
