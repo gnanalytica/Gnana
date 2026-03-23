@@ -1,11 +1,14 @@
 export interface GnanaClientConfig {
   url: string;
   apiKey?: string;
+  /** Dynamic token getter — called on every request to supply a fresh JWT */
+  getToken?: () => Promise<string | null | undefined> | string | null | undefined;
 }
 
 export class GnanaClient {
   private baseUrl: string;
   private apiKey?: string;
+  private getToken?: GnanaClientConfig["getToken"];
 
   readonly agents: AgentsAPI;
   readonly runs: RunsAPI;
@@ -14,15 +17,25 @@ export class GnanaClient {
   constructor(config: GnanaClientConfig) {
     this.baseUrl = config.url.replace(/\/$/, "");
     this.apiKey = config.apiKey;
+    this.getToken = config.getToken;
     this.agents = new AgentsAPI(this);
     this.runs = new RunsAPI(this);
     this.connectors = new ConnectorsAPI(this);
   }
 
   async fetch(path: string, init?: RequestInit): Promise<Response> {
+    // Resolve the bearer token: prefer dynamic token, fall back to static apiKey
+    let bearer = this.apiKey;
+    if (this.getToken) {
+      const dynamicToken = await this.getToken();
+      if (dynamicToken) {
+        bearer = dynamicToken;
+      }
+    }
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
+      ...(bearer && { Authorization: `Bearer ${bearer}` }),
       ...(init?.headers as Record<string, string>),
     };
 

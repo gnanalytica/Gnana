@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, agents, type Database } from "@gnana/db";
 import { requireRole } from "../middleware/rbac.js";
+import { planLimit } from "../middleware/plan-limits.js";
 
 export function agentRoutes(db: Database) {
   const app = new Hono();
@@ -29,8 +30,8 @@ export function agentRoutes(db: Database) {
     return c.json(result[0]);
   });
 
-  // Create agent — editor+
-  app.post("/", requireRole("editor"), async (c) => {
+  // Create agent — editor+ with plan limit check
+  app.post("/", requireRole("editor"), planLimit(db, "maxAgents", agents), async (c) => {
     const workspaceId = c.get("workspaceId");
     const body = await c.req.json();
     const result = await db

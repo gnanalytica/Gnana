@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { eq, and, desc, runs, runLogs, type Database } from "@gnana/db";
+import { eq, and, desc, sql, runs, runLogs, usageRecords, type Database } from "@gnana/db";
 import type { EventBus } from "@gnana/core";
 import { requireRole } from "../middleware/rbac.js";
+import { planRunLimit } from "../middleware/plan-limits.js";
 
 export function runRoutes(db: Database, events: EventBus) {
   const app = new Hono();
@@ -33,8 +34,8 @@ export function runRoutes(db: Database, events: EventBus) {
     return c.json(result[0]);
   });
 
-  // Trigger a new run — editor+
-  app.post("/", requireRole("editor"), async (c) => {
+  // Trigger a new run — editor+ with monthly run limit check
+  app.post("/", requireRole("editor"), planRunLimit(db), async (c) => {
     const workspaceId = c.get("workspaceId");
     const body = await c.req.json();
     const result = await db
@@ -48,6 +49,25 @@ export function runRoutes(db: Database, events: EventBus) {
       })
       .returning();
     const run = result[0]!;
+
+    // Track usage — increment the monthly run counter
+    const period = new Date().toISOString().slice(0, 7); // "2026-03"
+    await db
+      .insert(usageRecords)
+      .values({
+        workspaceId,
+        period,
+        runsCount: 1,
+        tokensUsed: 0,
+      })
+      .onConflictDoUpdate({
+        target: [usageRecords.workspaceId, usageRecords.period],
+        set: {
+          runsCount: sql`${usageRecords.runsCount} + 1`,
+          updatedAt: new Date(),
+        },
+      });
+
     await events.emit("run:queued", { runId: run.id, agentId: run.agentId });
     return c.json(run, 201);
   });

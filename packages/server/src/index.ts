@@ -10,6 +10,7 @@ import { runRoutes } from "./routes/runs.js";
 import { connectorRoutes } from "./routes/connectors.js";
 import { providerRoutes } from "./routes/providers.js";
 import { workspaceRoutes } from "./routes/workspaces.js";
+import { apiKeyRoutes } from "./routes/api-keys.js";
 import { connectionManager } from "./ws.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { workspaceMiddleware } from "./middleware/workspace.js";
@@ -109,6 +110,7 @@ function createApp(db: Database, events: EventBus) {
   api.route("/connectors", connectorRoutes(db));
   api.route("/providers", providerRoutes(db));
   api.route("/workspaces", workspaceRoutes(db));
+  api.route("/keys", apiKeyRoutes(db));
 
   app.route("/api", api);
 

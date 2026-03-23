@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, connectors, connectorTools, type Database } from "@gnana/db";
 import { requireRole } from "../middleware/rbac.js";
+import { planLimit } from "../middleware/plan-limits.js";
 
 export function connectorRoutes(db: Database) {
   const app = new Hono();
@@ -29,8 +30,8 @@ export function connectorRoutes(db: Database) {
     return c.json(result[0]);
   });
 
-  // Register connector — admin+
-  app.post("/", requireRole("admin"), async (c) => {
+  // Register connector — admin+ with plan limit check
+  app.post("/", requireRole("admin"), planLimit(db, "maxConnectors", connectors), async (c) => {
     const workspaceId = c.get("workspaceId");
     const body = await c.req.json();
     const result = await db
