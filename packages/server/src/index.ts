@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
@@ -8,6 +9,14 @@ import { agentRoutes } from "./routes/agents.js";
 import { runRoutes } from "./routes/runs.js";
 import { connectorRoutes } from "./routes/connectors.js";
 import { providerRoutes } from "./routes/providers.js";
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV ?? "development",
+    tracesSampleRate: 1.0,
+  });
+}
 
 export interface GnanaServerConfig {
   port?: number;
@@ -40,8 +49,24 @@ function createApp(db: Database, events: EventBus) {
   // Middleware
   app.use("*", cors());
 
+  // Root route
+  app.get("/", (c) =>
+    c.json({
+      name: "Gnana API",
+      version: "0.0.1",
+      status: "ok",
+      docs: "/api",
+    }),
+  );
+
   // Health check
   app.get("/health", (c) => c.json({ status: "ok" }));
+
+  // Sentry error handler
+  app.onError((err, c) => {
+    Sentry.captureException(err);
+    return c.json({ error: "Internal server error" }, 500);
+  });
 
   // API routes
   app.route("/api/agents", agentRoutes(db));

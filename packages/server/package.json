@@ -17,12 +17,13 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "hono": "^4.7.0",
-    "@hono/node-server": "^1.13.0",
     "@gnana/core": "workspace:*",
     "@gnana/db": "workspace:*",
     "@gnana/provider-base": "workspace:*",
+    "@hono/node-server": "^1.13.0",
+    "@sentry/node": "^10.45.0",
     "drizzle-orm": "^0.38.0",
+    "hono": "^4.7.0",
     "postgres": "^3.4.0"
   },
   "devDependencies": {
