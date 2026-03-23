@@ -10,3 +10,9 @@ dist/
 
 .DS_Store
 *.log
+
+# Claude Code / plugins
+.agents/
+.superpowers/
+.claude/settings.json
+skills-lock.json
