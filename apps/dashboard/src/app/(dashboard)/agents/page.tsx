@@ -2,124 +2,48 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { AgentCard } from "@/components/agents/agent-card";
-import type { Agent } from "@/types";
-
-// Placeholder data
-const placeholderAgents: Agent[] = [
-  {
-    id: "agent-1",
-    name: "Weekly Report Agent",
-    description:
-      "Generates comprehensive weekly reports from multiple data sources including Jira, GitHub, and Confluence.",
-    systemPrompt:
-      "You are a reporting assistant. Gather data from configured sources and generate a well-structured weekly summary report.",
-    toolsConfig: {
-      jira_search: {},
-      github_pulls: {},
-      confluence_read: {},
-      slack_post: {},
-      markdown_render: {},
-    },
-    llmConfig: {
-      analysis: { provider: "anthropic", model: "Claude Sonnet" },
-      planning: { provider: "anthropic", model: "Claude Sonnet" },
-      execution: { provider: "anthropic", model: "Claude Haiku" },
-    },
-    triggersConfig: [
-      { type: "cron", config: { schedule: "0 9 * * 1" } },
-      { type: "manual" },
-    ],
-    approval: "auto",
-    maxToolRounds: 10,
-    createdAt: "2026-03-01T00:00:00Z",
-    updatedAt: "2026-03-20T00:00:00Z",
-  },
-  {
-    id: "agent-2",
-    name: "Slack Summarizer",
-    description:
-      "Monitors Slack channels and provides daily digests of important discussions and decisions.",
-    systemPrompt:
-      "You are a Slack summarizer. Read through channel messages and extract key discussions, decisions, and action items.",
-    toolsConfig: {
-      slack_read: {},
-      slack_post: {},
-    },
-    llmConfig: {
-      analysis: { provider: "anthropic", model: "Claude Sonnet" },
-      planning: { provider: "anthropic", model: "Claude Haiku" },
-    },
-    triggersConfig: [{ type: "cron", config: { schedule: "0 17 * * *" } }],
-    approval: "auto",
-    createdAt: "2026-03-05T00:00:00Z",
-    updatedAt: "2026-03-18T00:00:00Z",
-  },
-  {
-    id: "agent-3",
-    name: "Code Review Agent",
-    description:
-      "Automatically reviews pull requests for code quality, security issues, and adherence to team standards.",
-    systemPrompt:
-      "You are a code reviewer. Analyze pull request diffs and provide constructive feedback on code quality, security, and best practices.",
-    toolsConfig: {
-      github_pulls: {},
-      github_comments: {},
-      code_analysis: {},
-    },
-    llmConfig: {
-      analysis: { provider: "anthropic", model: "Claude Sonnet" },
-      planning: { provider: "anthropic", model: "Claude Sonnet" },
-      execution: { provider: "anthropic", model: "Claude Sonnet" },
-    },
-    triggersConfig: [{ type: "webhook" }],
-    approval: "required",
-    maxToolRounds: 5,
-    createdAt: "2026-03-10T00:00:00Z",
-    updatedAt: "2026-03-22T00:00:00Z",
-  },
-  {
-    id: "agent-4",
-    name: "Data Pipeline Monitor",
-    description:
-      "Monitors data pipeline health and alerts on failures or anomalies in data quality metrics.",
-    systemPrompt:
-      "You are a data pipeline monitor. Check pipeline status, analyze metrics, and raise alerts when issues are detected.",
-    toolsConfig: {
-      db_query: {},
-      metrics_read: {},
-      slack_post: {},
-      pagerduty_alert: {},
-    },
-    llmConfig: {
-      analysis: { provider: "openai", model: "GPT-4o" },
-      planning: { provider: "openai", model: "GPT-4o" },
-      execution: { provider: "openai", model: "GPT-4o-mini" },
-    },
-    triggersConfig: [
-      { type: "cron", config: { schedule: "*/15 * * * *" } },
-      { type: "webhook" },
-    ],
-    approval: "conditional",
-    maxToolRounds: 8,
-    createdAt: "2026-03-12T00:00:00Z",
-    updatedAt: "2026-03-21T00:00:00Z",
-  },
-];
+import { useAgents } from "@/lib/hooks/use-agents";
 
 export default function AgentsPage() {
   const [search, setSearch] = useState("");
+  const { agents, isLoading, error } = useAgents();
 
   const filteredAgents = useMemo(() => {
-    if (!search.trim()) return placeholderAgents;
+    if (!search.trim()) return agents;
     const query = search.toLowerCase();
-    return placeholderAgents.filter((agent) =>
+    return agents.filter((agent) =>
       agent.name.toLowerCase().includes(query)
     );
-  }, [search]);
+  }, [search, agents]);
+
+  if (error) {
+    return (
+      <div className="p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Agents</h1>
+        </div>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-8">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <p className="font-medium text-destructive">
+                Cannot connect to server
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Make sure the Gnana server is running at{" "}
+                {process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-6">
@@ -145,8 +69,13 @@ export default function AgentsPage() {
         />
       </div>
 
-      {/* Agent Grid or Empty State */}
-      {filteredAgents.length > 0 ? (
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          Loading...
+        </div>
+      ) : /* Agent Grid or Empty State */
+      filteredAgents.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filteredAgents.map((agent) => (
             <AgentCard key={agent.id} agent={agent} />

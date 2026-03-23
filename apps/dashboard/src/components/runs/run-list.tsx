@@ -6,133 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PipelineStage } from "@/types";
+import type { Run } from "@/types";
 import type { RunFilters } from "./run-filters";
-
-interface MockRun {
-  id: string;
-  agentName: string;
-  agentId: string;
-  status: PipelineStage;
-  triggerType: string;
-  startedAgo: string;
-  duration: string;
-  model: string;
-  tokens: number;
-}
-
-const mockRuns: MockRun[] = [
-  {
-    id: "run-abc123",
-    agentName: "Weekly Report Agent",
-    agentId: "agent-1",
-    status: "awaiting_approval",
-    triggerType: "manual",
-    startedAgo: "2 min ago",
-    duration: "1m 42s",
-    model: "gpt-4o",
-    tokens: 6350,
-  },
-  {
-    id: "run-def456",
-    agentName: "Slack Summarizer",
-    agentId: "agent-2",
-    status: "executing",
-    triggerType: "webhook",
-    startedAgo: "5 min ago",
-    duration: "3m 12s",
-    model: "claude-3.5-sonnet",
-    tokens: 12480,
-  },
-  {
-    id: "run-ghi789",
-    agentName: "Code Review Agent",
-    agentId: "agent-3",
-    status: "completed",
-    triggerType: "webhook",
-    startedAgo: "12 min ago",
-    duration: "2m 05s",
-    model: "gpt-4o",
-    tokens: 8920,
-  },
-  {
-    id: "run-jkl012",
-    agentName: "Data Pipeline Monitor",
-    agentId: "agent-4",
-    status: "failed",
-    triggerType: "assignment",
-    startedAgo: "25 min ago",
-    duration: "0m 34s",
-    model: "claude-3.5-sonnet",
-    tokens: 2100,
-  },
-  {
-    id: "run-mno345",
-    agentName: "Weekly Report Agent",
-    agentId: "agent-1",
-    status: "completed",
-    triggerType: "manual",
-    startedAgo: "1 hr ago",
-    duration: "4m 18s",
-    model: "gpt-4o",
-    tokens: 15300,
-  },
-  {
-    id: "run-pqr678",
-    agentName: "Slack Summarizer",
-    agentId: "agent-2",
-    status: "analyzing",
-    triggerType: "mention",
-    startedAgo: "1 hr ago",
-    duration: "0m 22s",
-    model: "claude-3.5-sonnet",
-    tokens: 1840,
-  },
-  {
-    id: "run-stu901",
-    agentName: "Code Review Agent",
-    agentId: "agent-3",
-    status: "planning",
-    triggerType: "webhook",
-    startedAgo: "2 hr ago",
-    duration: "1m 08s",
-    model: "gpt-4o",
-    tokens: 4520,
-  },
-  {
-    id: "run-vwx234",
-    agentName: "Data Pipeline Monitor",
-    agentId: "agent-4",
-    status: "completed",
-    triggerType: "assignment",
-    startedAgo: "3 hr ago",
-    duration: "5m 42s",
-    model: "claude-3.5-sonnet",
-    tokens: 18700,
-  },
-  {
-    id: "run-yza567",
-    agentName: "Weekly Report Agent",
-    agentId: "agent-1",
-    status: "queued",
-    triggerType: "manual",
-    startedAgo: "3 hr ago",
-    duration: "--",
-    model: "gpt-4o",
-    tokens: 0,
-  },
-  {
-    id: "run-bcd890",
-    agentName: "Slack Summarizer",
-    agentId: "agent-2",
-    status: "completed",
-    triggerType: "webhook",
-    startedAgo: "5 hr ago",
-    duration: "2m 55s",
-    model: "claude-3.5-sonnet",
-    tokens: 9640,
-  },
-];
 
 const statusDotColors: Record<string, string> = {
   completed: "bg-green-500",
@@ -168,15 +43,47 @@ function formatStatus(status: string) {
   return status.replace(/_/g, " ");
 }
 
-interface RunListProps {
-  filters: RunFilters;
+function formatRelativeTime(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
-export function RunList({ filters }: RunListProps) {
+function formatDuration(start: string, end?: string) {
+  const endTime = end ? new Date(end).getTime() : Date.now();
+  const ms = endTime - new Date(start).getTime();
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  if (mins === 0 && secs === 0) return "--";
+  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+}
+
+interface RunListProps {
+  filters: RunFilters;
+  runs?: Run[];
+  isLoading?: boolean;
+}
+
+export function RunList({ filters, runs = [], isLoading = false }: RunListProps) {
   const router = useRouter();
   const [visibleCount, setVisibleCount] = useState(5);
 
-  const filteredRuns = mockRuns.filter((run) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const filteredRuns = runs.filter((run) => {
     if (filters.status !== "all" && run.status !== filters.status) return false;
     if (filters.agent !== "all" && run.agentId !== filters.agent) return false;
     if (filters.triggerType !== "all" && run.triggerType !== filters.triggerType)
@@ -192,7 +99,9 @@ export function RunList({ filters }: RunListProps) {
       <Card>
         <CardContent className="py-12 text-center">
           <p className="text-muted-foreground">
-            No runs match the current filters.
+            {runs.length === 0
+              ? "No runs yet."
+              : "No runs match the current filters."}
           </p>
         </CardContent>
       </Card>
@@ -215,49 +124,52 @@ export function RunList({ filters }: RunListProps) {
           </div>
 
           <div className="divide-y divide-border">
-            {visibleRuns.map((run) => (
-              <div
-                key={run.id}
-                onClick={() => router.push(`/runs/${run.id}`)}
-                className="grid grid-cols-[auto_1fr_auto_auto_auto_auto_auto] gap-4 items-center px-6 py-4 cursor-pointer hover:bg-muted/50 transition-colors"
-              >
-                <span
-                  className={cn(
-                    "h-2 w-2 rounded-full shrink-0",
-                    statusDotColors[run.status],
-                  )}
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {run.agentName}
-                  </p>
-                  <p className="text-xs text-muted-foreground sm:hidden">
-                    {run.startedAgo}
-                  </p>
-                </div>
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "border-0 text-xs capitalize",
-                    statusBadgeClasses[run.status],
-                  )}
+            {visibleRuns.map((run) => {
+              const totalTokens = run.inputTokens + run.outputTokens;
+              return (
+                <div
+                  key={run.id}
+                  onClick={() => router.push(`/runs/${run.id}`)}
+                  className="grid grid-cols-[auto_1fr_auto_auto_auto_auto_auto] gap-4 items-center px-6 py-4 cursor-pointer hover:bg-muted/50 transition-colors"
                 >
-                  {formatStatus(run.status)}
-                </Badge>
-                <Badge variant="outline" className="text-xs capitalize">
-                  {run.triggerType}
-                </Badge>
-                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">
-                  {run.startedAgo}
-                </span>
-                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">
-                  {run.duration}
-                </span>
-                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap text-right tabular-nums">
-                  {run.tokens > 0 ? run.tokens.toLocaleString() : "--"}
-                </span>
-              </div>
-            ))}
+                  <span
+                    className={cn(
+                      "h-2 w-2 rounded-full shrink-0",
+                      statusDotColors[run.status],
+                    )}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {run.agentId}
+                    </p>
+                    <p className="text-xs text-muted-foreground sm:hidden">
+                      {formatRelativeTime(run.createdAt)}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "border-0 text-xs capitalize",
+                      statusBadgeClasses[run.status],
+                    )}
+                  >
+                    {formatStatus(run.status)}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {run.triggerType}
+                  </Badge>
+                  <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">
+                    {formatRelativeTime(run.createdAt)}
+                  </span>
+                  <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">
+                    {formatDuration(run.createdAt, run.updatedAt)}
+                  </span>
+                  <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap text-right tabular-nums">
+                    {totalTokens > 0 ? totalTokens.toLocaleString() : "--"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

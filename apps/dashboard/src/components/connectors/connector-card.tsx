@@ -22,7 +22,7 @@ interface ConnectorCardProps {
     id: string;
     name: string;
     type: string;
-    status: "active" | "disconnected";
+    status: "active" | "disconnected" | "error";
     toolCount: number;
   };
 }
@@ -51,7 +51,7 @@ export function ConnectorCard({ connector }: ConnectorCardProps) {
                 : ""
             }
           >
-            {connector.status === "active" ? "Active" : "Disconnected"}
+            {connector.status === "active" ? "Active" : connector.status === "error" ? "Error" : "Disconnected"}
           </Badge>
         </div>
       </CardHeader>

@@ -1,19 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Store } from "lucide-react";
+import { Plus, Store, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { ConnectorCard } from "@/components/connectors/connector-card";
-
-const placeholderConnectors = [
-  { id: "c-1", name: "GitHub", type: "github", status: "active" as const, toolCount: 12 },
-  { id: "c-2", name: "Slack", type: "slack", status: "active" as const, toolCount: 8 },
-  { id: "c-3", name: "PostgreSQL", type: "postgres", status: "active" as const, toolCount: 3 },
-  { id: "c-4", name: "HTTP API", type: "http", status: "active" as const, toolCount: 5 },
-];
+import { useConnectors } from "@/lib/hooks/use-connectors";
 
 export default function ConnectorsPage() {
-  const connectors = placeholderConnectors;
+  const { connectors, isLoading, error } = useConnectors();
+
+  if (error) {
+    return (
+      <div className="p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Connectors</h1>
+        </div>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-8">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <p className="font-medium text-destructive">
+                Cannot connect to server
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Make sure the Gnana server is running at{" "}
+                {process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-6">
@@ -34,8 +53,13 @@ export default function ConnectorsPage() {
         </div>
       </div>
 
-      {/* Connector Grid or Empty State */}
-      {connectors.length > 0 ? (
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          Loading...
+        </div>
+      ) : /* Connector Grid or Empty State */
+      connectors.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {connectors.map((connector) => (
             <ConnectorCard key={connector.id} connector={connector} />

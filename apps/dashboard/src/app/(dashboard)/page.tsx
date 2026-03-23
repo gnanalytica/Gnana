@@ -1,61 +1,14 @@
+"use client";
+
+import { useMemo } from "react";
 import Link from "next/link";
-import { Bot, Play, Clock, Plus } from "lucide-react";
+import { Bot, Play, Clock, Plus, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PipelineStage } from "@/types";
-
-// Placeholder data
-const stats = {
-  activeAgents: 4,
-  runsToday: 12,
-  awaitingApproval: 2,
-};
-
-const recentRuns: Array<{
-  id: string;
-  agentName: string;
-  status: PipelineStage;
-  triggerType: string;
-  timeAgo: string;
-}> = [
-  {
-    id: "run-1",
-    agentName: "Weekly Report Agent",
-    status: "completed",
-    triggerType: "cron",
-    timeAgo: "5 minutes ago",
-  },
-  {
-    id: "run-2",
-    agentName: "Slack Summarizer",
-    status: "executing",
-    triggerType: "webhook",
-    timeAgo: "12 minutes ago",
-  },
-  {
-    id: "run-3",
-    agentName: "Code Review Agent",
-    status: "awaiting_approval",
-    triggerType: "manual",
-    timeAgo: "1 hour ago",
-  },
-  {
-    id: "run-4",
-    agentName: "Data Pipeline Monitor",
-    status: "failed",
-    triggerType: "cron",
-    timeAgo: "2 hours ago",
-  },
-  {
-    id: "run-5",
-    agentName: "Email Drafter",
-    status: "queued",
-    triggerType: "manual",
-    timeAgo: "3 hours ago",
-  },
-];
+import { useAgents } from "@/lib/hooks/use-agents";
+import { useRuns } from "@/lib/hooks/use-runs";
 
 const statusColors: Record<string, string> = {
   completed: "bg-green-500",
@@ -86,7 +39,77 @@ const statusBadgeClasses: Record<string, string> = {
   rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
+function formatRelativeTime(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 export default function DashboardHome() {
+  const { agents, isLoading: agentsLoading, error: agentsError } = useAgents();
+  const { runs, isLoading: runsLoading, error: runsError } = useRuns();
+
+  const isLoading = agentsLoading || runsLoading;
+  const connectionError = agentsError || runsError;
+
+  const stats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const runsToday = runs.filter(
+      (r) => new Date(r.createdAt) >= today
+    ).length;
+    const awaitingApproval = runs.filter(
+      (r) => r.status === "awaiting_approval"
+    ).length;
+
+    return {
+      activeAgents: agents.length,
+      runsToday,
+      awaitingApproval,
+    };
+  }, [agents, runs]);
+
+  const recentRuns = useMemo(() => {
+    return [...runs]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      .slice(0, 5);
+  }, [runs]);
+
+  if (connectionError) {
+    return (
+      <div className="p-8 space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold">Welcome to Gnana</h1>
+          <p className="text-muted-foreground mt-1">
+            AI Agent Dashboard — build, manage, and monitor agents.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-8">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <p className="font-medium text-destructive">
+                Cannot connect to server
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Make sure the Gnana server is running at{" "}
+                {process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 space-y-8">
       <div>
@@ -106,7 +129,9 @@ export default function DashboardHome() {
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.activeAgents}</div>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : stats.activeAgents}
+            </div>
           </CardContent>
         </Card>
 
@@ -118,7 +143,9 @@ export default function DashboardHome() {
             <Play className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.runsToday}</div>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : stats.runsToday}
+            </div>
           </CardContent>
         </Card>
 
@@ -131,7 +158,7 @@ export default function DashboardHome() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-amber-500">
-              {stats.awaitingApproval}
+              {isLoading ? "..." : stats.awaitingApproval}
             </div>
           </CardContent>
         </Card>
@@ -151,41 +178,52 @@ export default function DashboardHome() {
 
         <Card>
           <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {recentRuns.map((run) => (
-                <div
-                  key={run.id}
-                  className="flex items-center gap-4 px-6 py-4"
-                >
-                  <span
-                    className={cn(
-                      "h-2.5 w-2.5 rounded-full shrink-0",
-                      statusColors[run.status]
-                    )}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {run.agentName}
-                    </p>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "border-0 text-xs",
-                      statusBadgeClasses[run.status]
-                    )}
+            {isLoading ? (
+              <div className="px-6 py-8 text-center text-muted-foreground">
+                Loading...
+              </div>
+            ) : recentRuns.length === 0 ? (
+              <div className="px-6 py-8 text-center text-muted-foreground">
+                No recent runs
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {recentRuns.map((run) => (
+                  <Link
+                    key={run.id}
+                    href={`/runs/${run.id}`}
+                    className="flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors"
                   >
-                    {run.status.replace("_", " ")}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {run.triggerType}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {run.timeAgo}
-                  </span>
-                </div>
-              ))}
-            </div>
+                    <span
+                      className={cn(
+                        "h-2.5 w-2.5 rounded-full shrink-0",
+                        statusColors[run.status]
+                      )}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {run.agentId}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "border-0 text-xs",
+                        statusBadgeClasses[run.status]
+                      )}
+                    >
+                      {run.status.replace(/_/g, " ")}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {run.triggerType}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatRelativeTime(run.createdAt)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
