@@ -130,11 +130,46 @@ function createDefaultNodes(): Node[] {
 
 function createDefaultEdges(): Edge[] {
   return [
-    { id: "e-trigger-analyze", source: "trigger", target: "analyze", type: "custom", animated: true, style: { stroke: "var(--phase-trigger)" } },
-    { id: "e-analyze-plan", source: "analyze", target: "plan", type: "custom", animated: true, style: { stroke: "var(--phase-analyze)" } },
-    { id: "e-plan-approve", source: "plan", target: "approve", type: "custom", animated: true, style: { stroke: "var(--phase-plan)" } },
-    { id: "e-approve-execute", source: "approve", target: "execute", type: "custom", animated: true, style: { stroke: "var(--phase-approve)" } },
-    { id: "e-execute-output", source: "execute", target: "output", type: "custom", animated: true, style: { stroke: "var(--phase-execute)" } },
+    {
+      id: "e-trigger-analyze",
+      source: "trigger",
+      target: "analyze",
+      type: "custom",
+      animated: true,
+      style: { stroke: "var(--phase-trigger)" },
+    },
+    {
+      id: "e-analyze-plan",
+      source: "analyze",
+      target: "plan",
+      type: "custom",
+      animated: true,
+      style: { stroke: "var(--phase-analyze)" },
+    },
+    {
+      id: "e-plan-approve",
+      source: "plan",
+      target: "approve",
+      type: "custom",
+      animated: true,
+      style: { stroke: "var(--phase-plan)" },
+    },
+    {
+      id: "e-approve-execute",
+      source: "approve",
+      target: "execute",
+      type: "custom",
+      animated: true,
+      style: { stroke: "var(--phase-approve)" },
+    },
+    {
+      id: "e-execute-output",
+      source: "execute",
+      target: "output",
+      type: "custom",
+      animated: true,
+      style: { stroke: "var(--phase-execute)" },
+    },
   ];
 }
 
@@ -185,7 +220,9 @@ function PipelineCanvasInner({ initialNodes, initialEdges, onChange }: PipelineC
   const clipboardRef = useRef<ClipboardData | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Map<string, ValidationError[]>>(new Map());
+  const [validationErrors, setValidationErrors] = useState<Map<string, ValidationError[]>>(
+    new Map(),
+  );
   const validationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -525,7 +562,17 @@ function PipelineCanvasInner({ initialNodes, initialEdges, onChange }: PipelineC
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handlePaletteAdd, selectedNode, handleUndo, handleRedo, handleCopy, handlePaste, handleDuplicate, handleDeleteSelected, setNodes]);
+  }, [
+    handlePaletteAdd,
+    selectedNode,
+    handleUndo,
+    handleRedo,
+    handleCopy,
+    handlePaste,
+    handleDuplicate,
+    handleDeleteSelected,
+    setNodes,
+  ]);
 
   // Close context menu on click anywhere
   useEffect(() => {
@@ -646,7 +693,7 @@ function PipelineCanvasInner({ initialNodes, initialEdges, onChange }: PipelineC
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         node={selectedNode}
-        validationErrors={selectedNode ? validationErrors.get(selectedNode.id) ?? [] : []}
+        validationErrors={selectedNode ? (validationErrors.get(selectedNode.id) ?? []) : []}
         onUpdate={(data) => {
           if (selectedNode) {
             setNodes((nds) =>

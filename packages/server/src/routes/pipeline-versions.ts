@@ -13,10 +13,7 @@ export function pipelineVersionRoutes(db: Database) {
       .select()
       .from(pipelineVersions)
       .where(
-        and(
-          eq(pipelineVersions.agentId, agentId),
-          eq(pipelineVersions.workspaceId, workspaceId),
-        ),
+        and(eq(pipelineVersions.agentId, agentId), eq(pipelineVersions.workspaceId, workspaceId)),
       )
       .orderBy(desc(pipelineVersions.version));
     return c.json(result);
@@ -33,10 +30,7 @@ export function pipelineVersionRoutes(db: Database) {
       .select({ version: pipelineVersions.version })
       .from(pipelineVersions)
       .where(
-        and(
-          eq(pipelineVersions.agentId, agentId),
-          eq(pipelineVersions.workspaceId, workspaceId),
-        ),
+        and(eq(pipelineVersions.agentId, agentId), eq(pipelineVersions.workspaceId, workspaceId)),
       )
       .orderBy(desc(pipelineVersions.version))
       .limit(1);
@@ -67,10 +61,7 @@ export function pipelineVersionRoutes(db: Database) {
       .select()
       .from(pipelineVersions)
       .where(
-        and(
-          eq(pipelineVersions.id, versionId),
-          eq(pipelineVersions.workspaceId, workspaceId),
-        ),
+        and(eq(pipelineVersions.id, versionId), eq(pipelineVersions.workspaceId, workspaceId)),
       );
     if (result.length === 0) {
       return c.json({ error: "Version not found" }, 404);

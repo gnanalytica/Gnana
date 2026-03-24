@@ -47,10 +47,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
 
       const streamMsgId = crypto.randomUUID();
       // Create assistant message immediately with empty content
-      setMessages((prev) => [
-        ...prev,
-        { id: streamMsgId, role: "assistant", content: "" },
-      ]);
+      setMessages((prev) => [...prev, { id: streamMsgId, role: "assistant", content: "" }]);
 
       try {
         const stream = streamPipelineResponse(message);
@@ -60,9 +57,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
           if (chunk.type === "text") {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === streamMsgId
-                  ? { ...m, content: m.content + chunk.content }
-                  : m,
+                m.id === streamMsgId ? { ...m, content: m.content + chunk.content } : m,
               ),
             );
           } else if (chunk.type === "spec") {
@@ -74,9 +69,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
           setGeneratedSpec(spec);
           // Update message with pipeline spec
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === streamMsgId ? { ...m, pipelineSpec: spec! } : m,
-            ),
+            prev.map((m) => (m.id === streamMsgId ? { ...m, pipelineSpec: spec! } : m)),
           );
         }
       } catch {

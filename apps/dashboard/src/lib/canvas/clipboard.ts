@@ -11,9 +11,7 @@ export interface ClipboardData {
 export function copyNodes(selectedNodes: Node[], allEdges: Edge[]): ClipboardData {
   const nodeIds = new Set(selectedNodes.map((n) => n.id));
   // Only include edges where both source and target are in the selection
-  const internalEdges = allEdges.filter(
-    (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
-  );
+  const internalEdges = allEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
   return {
     nodes: selectedNodes.map((n) => ({ ...n })),
     edges: internalEdges.map((e) => ({ ...e })),

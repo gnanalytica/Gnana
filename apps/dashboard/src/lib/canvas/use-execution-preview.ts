@@ -78,7 +78,10 @@ export function useExecutionPreview(nodes: NodeSpec[], edges: EdgeSpec[], delay 
         isRunning: false,
         isPaused: false,
         currentNodeId: null,
-        executedNodeIds: new Set([...s.executedNodeIds, ...(s.currentNodeId ? [s.currentNodeId] : [])]),
+        executedNodeIds: new Set([
+          ...s.executedNodeIds,
+          ...(s.currentNodeId ? [s.currentNodeId] : []),
+        ]),
         step: nextStep,
       });
       return;
@@ -88,7 +91,10 @@ export function useExecutionPreview(nodes: NodeSpec[], edges: EdgeSpec[], delay 
       isRunning: true,
       isPaused: false,
       currentNodeId: order[nextStep] ?? null,
-      executedNodeIds: new Set([...s.executedNodeIds, ...(s.currentNodeId ? [s.currentNodeId] : [])]),
+      executedNodeIds: new Set([
+        ...s.executedNodeIds,
+        ...(s.currentNodeId ? [s.currentNodeId] : []),
+      ]),
       step: nextStep,
     });
 

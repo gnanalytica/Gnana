@@ -24,14 +24,14 @@ export default function CanvasPage({ params }: { params: Promise<{ id: string }>
   if (error || !agent) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
-        <div className="text-muted-foreground">
-          {error ?? "Agent not found"}
-        </div>
+        <div className="text-muted-foreground">{error ?? "Agent not found"}</div>
       </div>
     );
   }
 
-  const pipelineConfig = agent.pipelineConfig as { nodes?: NodeSpec[]; edges?: EdgeSpec[] } | undefined;
+  const pipelineConfig = agent.pipelineConfig as
+    | { nodes?: NodeSpec[]; edges?: EdgeSpec[] }
+    | undefined;
 
   return (
     <div className="h-screen w-full">

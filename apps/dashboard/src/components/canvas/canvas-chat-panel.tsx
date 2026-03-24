@@ -54,10 +54,7 @@ export function CanvasChatPanel({
 
     const streamMsgId = crypto.randomUUID();
     // Create assistant message immediately with empty content
-    setMessages((prev) => [
-      ...prev,
-      { id: streamMsgId, role: "assistant", content: "" },
-    ]);
+    setMessages((prev) => [...prev, { id: streamMsgId, role: "assistant", content: "" }]);
 
     try {
       const contextDescription = `Current pipeline has ${currentNodes.length} nodes and ${currentEdges.length} edges. User request: ${text}`;
@@ -67,9 +64,7 @@ export function CanvasChatPanel({
         if (chunk.type === "text") {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === streamMsgId
-                ? { ...m, content: m.content + chunk.content }
-                : m,
+              m.id === streamMsgId ? { ...m, content: m.content + chunk.content } : m,
             ),
           );
         } else if (chunk.type === "spec") {

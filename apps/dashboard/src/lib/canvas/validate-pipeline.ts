@@ -9,23 +9,48 @@ export function validateNode(node: NodeSpec): ValidationError[] {
   switch (node.type) {
     case "llm":
       if (!d.model) {
-        errors.push({ nodeId: node.id, field: "model", message: "Model is required", severity: "error" });
+        errors.push({
+          nodeId: node.id,
+          field: "model",
+          message: "Model is required",
+          severity: "error",
+        });
       }
       if (!d.provider) {
-        errors.push({ nodeId: node.id, field: "provider", message: "Provider is required", severity: "error" });
+        errors.push({
+          nodeId: node.id,
+          field: "provider",
+          message: "Provider is required",
+          severity: "error",
+        });
       }
       break;
     case "tool":
       if (!d.name || d.name === "Unnamed") {
-        errors.push({ nodeId: node.id, field: "name", message: "Tool name is required", severity: "error" });
+        errors.push({
+          nodeId: node.id,
+          field: "name",
+          message: "Tool name is required",
+          severity: "error",
+        });
       }
       if (!d.connector) {
-        errors.push({ nodeId: node.id, field: "connector", message: "Connector recommended", severity: "warning" });
+        errors.push({
+          nodeId: node.id,
+          field: "connector",
+          message: "Connector recommended",
+          severity: "warning",
+        });
       }
       break;
     case "condition":
       if (!d.expression || d.expression === "if ...") {
-        errors.push({ nodeId: node.id, field: "expression", message: "Condition expression is required", severity: "error" });
+        errors.push({
+          nodeId: node.id,
+          field: "expression",
+          message: "Condition expression is required",
+          severity: "error",
+        });
       }
       break;
   }
@@ -45,15 +70,27 @@ export function validatePipeline(nodes: NodeSpec[], edges: EdgeSpec[]): Validati
   // Pipeline-level: exactly one trigger
   const triggers = nodes.filter((n) => n.type === "trigger");
   if (triggers.length === 0) {
-    allErrors.push({ nodeId: "", message: "Pipeline must have at least one trigger", severity: "error" });
+    allErrors.push({
+      nodeId: "",
+      message: "Pipeline must have at least one trigger",
+      severity: "error",
+    });
   } else if (triggers.length > 1) {
-    allErrors.push({ nodeId: "", message: "Pipeline should have exactly one trigger", severity: "warning" });
+    allErrors.push({
+      nodeId: "",
+      message: "Pipeline should have exactly one trigger",
+      severity: "warning",
+    });
   }
 
   // At least one output
   const outputs = nodes.filter((n) => n.type === "output");
   if (outputs.length === 0) {
-    allErrors.push({ nodeId: "", message: "Pipeline should have at least one output node", severity: "warning" });
+    allErrors.push({
+      nodeId: "",
+      message: "Pipeline should have at least one output node",
+      severity: "warning",
+    });
   }
 
   // Orphan detection — nodes with no edges

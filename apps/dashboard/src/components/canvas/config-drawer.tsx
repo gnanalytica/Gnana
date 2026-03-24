@@ -24,7 +24,14 @@ interface ConfigDrawerProps {
   onDelete: () => void;
 }
 
-export function ConfigDrawer({ isOpen, onClose, node, validationErrors = [], onUpdate, onDelete }: ConfigDrawerProps) {
+export function ConfigDrawer({
+  isOpen,
+  onClose,
+  node,
+  validationErrors = [],
+  onUpdate,
+  onDelete,
+}: ConfigDrawerProps) {
   if (!node) return null;
   const d = node.data as Record<string, unknown>;
   const nodeType = node.type;

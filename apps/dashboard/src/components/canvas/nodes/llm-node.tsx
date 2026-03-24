@@ -36,7 +36,9 @@ function LLMNodeComponent({ data }: NodeProps) {
         {hasErrors && <AlertTriangle className="h-3 w-3 text-destructive" />}
       </div>
       <div className="text-sm text-foreground mt-1">{(d.model as string) ?? "No model"}</div>
-      {typeof d.provider === "string" && <div className="text-xs text-muted-foreground">{d.provider}</div>}
+      {typeof d.provider === "string" && (
+        <div className="text-xs text-muted-foreground">{d.provider}</div>
+      )}
       {typeof d.toolCount === "number" && d.toolCount > 0 && (
         <div className="mt-1">
           <span className="text-xs bg-muted text-muted-foreground rounded px-1.5 py-0.5">

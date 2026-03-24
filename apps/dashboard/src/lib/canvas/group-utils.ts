@@ -14,7 +14,10 @@ export function createGroup(
 
   // Compute bounding box
   const padding = 40;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const node of selectedNodes) {
     minX = Math.min(minX, node.position.x);
     minY = Math.min(minY, node.position.y);

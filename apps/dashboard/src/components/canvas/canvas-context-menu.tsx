@@ -48,7 +48,11 @@ interface CanvasContextMenuProps {
   hasClipboard: boolean;
 }
 
-const NODE_TYPE_ITEMS: { type: PipelineNodeType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const NODE_TYPE_ITEMS: {
+  type: PipelineNodeType;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
   { type: "llm", label: "LLM", icon: Brain },
   { type: "tool", label: "Tool", icon: Wrench },
   { type: "humanGate", label: "Approval Gate", icon: ShieldCheck },
@@ -78,10 +82,7 @@ export function CanvasContextMenu({
   if (!state) return null;
 
   return (
-    <div
-      className="fixed z-50"
-      style={{ left: state.x, top: state.y }}
-    >
+    <div className="fixed z-50" style={{ left: state.x, top: state.y }}>
       <div className="min-w-[180px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
         {state.type === "pane" && (
           <>
@@ -114,7 +115,10 @@ export function CanvasContextMenu({
             <div className="-mx-1 my-1 h-px bg-border" />
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-              onClick={() => { onPaste(); onClose(); }}
+              onClick={() => {
+                onPaste();
+                onClose();
+              }}
               disabled={!hasClipboard}
             >
               <Clipboard className="h-3.5 w-3.5 mr-2" />
@@ -124,14 +128,20 @@ export function CanvasContextMenu({
             <div className="-mx-1 my-1 h-px bg-border" />
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-              onClick={() => { onAutoLayout(); onClose(); }}
+              onClick={() => {
+                onAutoLayout();
+                onClose();
+              }}
             >
               <LayoutGrid className="h-3.5 w-3.5 mr-2" />
               Auto Layout
             </button>
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-              onClick={() => { onSelectAll(); onClose(); }}
+              onClick={() => {
+                onSelectAll();
+                onClose();
+              }}
             >
               <MousePointer className="h-3.5 w-3.5 mr-2" />
               Select All
@@ -139,7 +149,10 @@ export function CanvasContextMenu({
             </button>
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-              onClick={() => { onFitView(); onClose(); }}
+              onClick={() => {
+                onFitView();
+                onClose();
+              }}
             >
               <Maximize className="h-3.5 w-3.5 mr-2" />
               Fit View
@@ -151,14 +164,20 @@ export function CanvasContextMenu({
           <>
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-              onClick={() => { onEditNode(); onClose(); }}
+              onClick={() => {
+                onEditNode();
+                onClose();
+              }}
             >
               <Pencil className="h-3.5 w-3.5 mr-2" />
               Edit
             </button>
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-              onClick={() => { onDuplicateNode(); onClose(); }}
+              onClick={() => {
+                onDuplicateNode();
+                onClose();
+              }}
             >
               <CopyPlus className="h-3.5 w-3.5 mr-2" />
               Duplicate
@@ -166,7 +185,10 @@ export function CanvasContextMenu({
             </button>
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-              onClick={() => { onCopyNode(); onClose(); }}
+              onClick={() => {
+                onCopyNode();
+                onClose();
+              }}
             >
               <Copy className="h-3.5 w-3.5 mr-2" />
               Copy
@@ -177,7 +199,10 @@ export function CanvasContextMenu({
                 <div className="-mx-1 my-1 h-px bg-border" />
                 <button
                   className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => { onGroupNodes(); onClose(); }}
+                  onClick={() => {
+                    onGroupNodes();
+                    onClose();
+                  }}
                 >
                   <Group className="h-3.5 w-3.5 mr-2" />
                   Group
@@ -187,7 +212,10 @@ export function CanvasContextMenu({
             <div className="-mx-1 my-1 h-px bg-border" />
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-destructive"
-              onClick={() => { onDeleteNode(); onClose(); }}
+              onClick={() => {
+                onDeleteNode();
+                onClose();
+              }}
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" />
               Delete
@@ -200,7 +228,10 @@ export function CanvasContextMenu({
           <>
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-              onClick={() => { onDeleteEdge(); onClose(); }}
+              onClick={() => {
+                onDeleteEdge();
+                onClose();
+              }}
             >
               <Tag className="h-3.5 w-3.5 mr-2" />
               Add Label
@@ -208,7 +239,10 @@ export function CanvasContextMenu({
             <div className="-mx-1 my-1 h-px bg-border" />
             <button
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-destructive"
-              onClick={() => { onDeleteEdge(); onClose(); }}
+              onClick={() => {
+                onDeleteEdge();
+                onClose();
+              }}
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" />
               Delete Edge

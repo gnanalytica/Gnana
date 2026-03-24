@@ -23,7 +23,9 @@ function ToolNodeComponent({ data }: NodeProps) {
         {hasErrors && <AlertTriangle className="h-3 w-3 text-destructive" />}
       </div>
       <div className="text-sm text-foreground mt-1">{(d.name as string) ?? "Unnamed"}</div>
-      {typeof d.description === "string" && <div className="text-xs text-muted-foreground mt-0.5">{d.description}</div>}
+      {typeof d.description === "string" && (
+        <div className="text-xs text-muted-foreground mt-0.5">{d.description}</div>
+      )}
     </div>
   );
 }
