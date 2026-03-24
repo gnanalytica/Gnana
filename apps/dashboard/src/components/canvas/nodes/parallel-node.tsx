@@ -1,13 +1,21 @@
 "use client";
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { GitFork } from "lucide-react";
+import { GitFork, AlertTriangle } from "lucide-react";
 
 function ParallelNodeComponent({ data }: NodeProps) {
   const d = data as Record<string, unknown>;
   const branchCount = typeof d.branches === "number" ? d.branches : 2;
+  const hasErrors = Array.isArray(d._errors) && d._errors.length > 0;
+  const isExecuting = d._executing === true;
+  const isExecuted = d._executed === true;
+
   return (
-    <div className="bg-card border-2 border-cyan-400 rounded-lg p-4 min-w-[150px] shadow-md">
+    <div
+      className={`bg-card border-2 rounded-lg p-4 min-w-[150px] shadow-md transition-all ${
+        hasErrors ? "border-destructive" : "border-cyan-400"
+      } ${isExecuting ? "ring-2 ring-primary animate-pulse" : ""} ${isExecuted ? "opacity-70" : ""}`}
+    >
       <Handle type="target" position={Position.Left} className="!bg-cyan-400" />
       {Array.from({ length: branchCount }, (_, i) => (
         <Handle
@@ -22,6 +30,7 @@ function ParallelNodeComponent({ data }: NodeProps) {
       <div className="flex items-center gap-2">
         <GitFork className="h-4 w-4 text-cyan-400" />
         <span className="text-xs uppercase font-semibold text-cyan-400">Parallel</span>
+        {hasErrors && <AlertTriangle className="h-3 w-3 text-destructive" />}
       </div>
       <div className="text-sm text-foreground mt-1">{branchCount} branches</div>
     </div>

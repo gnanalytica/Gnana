@@ -12,6 +12,7 @@ import { providerRoutes } from "./routes/providers.js";
 import { workspaceRoutes } from "./routes/workspaces.js";
 import { apiKeyRoutes } from "./routes/api-keys.js";
 import { publicInviteRoutes, protectedInviteRoutes } from "./routes/invites.js";
+import { pipelineVersionRoutes } from "./routes/pipeline-versions.js";
 import { connectionManager } from "./ws.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { workspaceMiddleware } from "./middleware/workspace.js";
@@ -121,6 +122,7 @@ function createApp(db: Database, events: EventBus) {
   api.route("/providers", providerRoutes(db));
   api.route("/workspaces", workspaceRoutes(db));
   api.route("/keys", apiKeyRoutes(db));
+  api.route("/pipeline-versions", pipelineVersionRoutes(db));
 
   app.route("/api", api);
 

@@ -13,6 +13,7 @@ export class GnanaClient {
   readonly agents: AgentsAPI;
   readonly runs: RunsAPI;
   readonly connectors: ConnectorsAPI;
+  readonly pipelineVersions: PipelineVersionsAPI;
 
   constructor(config: GnanaClientConfig) {
     this.baseUrl = config.url.replace(/\/$/, "");
@@ -21,6 +22,7 @@ export class GnanaClient {
     this.agents = new AgentsAPI(this);
     this.runs = new RunsAPI(this);
     this.connectors = new ConnectorsAPI(this);
+    this.pipelineVersions = new PipelineVersionsAPI(this);
   }
 
   async fetch(path: string, init?: RequestInit): Promise<Response> {
@@ -170,6 +172,30 @@ class RunsAPI {
       }
     };
     return () => ws.close();
+  }
+}
+
+// ---- Pipeline Versions API ----
+
+class PipelineVersionsAPI {
+  constructor(private client: GnanaClient) {}
+
+  async list(agentId: string): Promise<unknown[]> {
+    const res = await this.client.fetch(`/api/pipeline-versions/${agentId}`);
+    return res.json() as Promise<unknown[]>;
+  }
+
+  async create(agentId: string, data: Record<string, unknown>): Promise<unknown> {
+    const res = await this.client.fetch(`/api/pipeline-versions/${agentId}`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  }
+
+  async get(agentId: string, versionId: string): Promise<unknown> {
+    const res = await this.client.fetch(`/api/pipeline-versions/${agentId}/${versionId}`);
+    return res.json();
   }
 }
 

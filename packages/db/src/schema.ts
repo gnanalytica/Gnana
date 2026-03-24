@@ -247,6 +247,22 @@ export const plans = pgTable("plans", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ---- Pipeline Versions ----
+
+export const pipelineVersions = pgTable("pipeline_versions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id")
+    .notNull()
+    .references(() => agents.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  version: integer("version").notNull(),
+  nodes: jsonb("nodes").notNull(),
+  edges: jsonb("edges").notNull(),
+  createdBy: uuid("created_by").references(() => users.id),
+  message: text("message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---- Usage Records ----
 
 export const usageRecords = pgTable(

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, X } from "lucide-react";
 import type { ChatMessage, NodeSpec, EdgeSpec } from "@/types/pipeline";
-import { generatePipelineFromPrompt } from "@/lib/pipeline-ai";
+import { streamPipelineResponse } from "@/lib/pipeline-ai-stream";
 
 interface CanvasChatPanelProps {
   onClose: () => void;
@@ -26,7 +26,7 @@ export function CanvasChatPanel({
       id: "welcome",
       role: "assistant",
       content:
-        'I can help you modify your pipeline. Try things like:\n• "Add a Slack notification after the execute step"\n• "Use Claude Opus for the analysis node"\n• "Add error handling with a condition node"',
+        'I can help you modify your pipeline. Try things like:\n\u2022 "Add a Slack notification after the execute step"\n\u2022 "Use Claude Opus for the analysis node"\n\u2022 "Add error handling with a condition node"',
     },
   ]);
   const [input, setInput] = useState("");
@@ -52,26 +52,38 @@ export function CanvasChatPanel({
     setMessages((prev) => [...prev, userMsg]);
     setIsGenerating(true);
 
+    const streamMsgId = crypto.randomUUID();
+    // Create assistant message immediately with empty content
+    setMessages((prev) => [
+      ...prev,
+      { id: streamMsgId, role: "assistant", content: "" },
+    ]);
+
     try {
-      // Generate a new pipeline from the combined context
       const contextDescription = `Current pipeline has ${currentNodes.length} nodes and ${currentEdges.length} edges. User request: ${text}`;
-      const spec = await generatePipelineFromPrompt(contextDescription);
+      const stream = streamPipelineResponse(contextDescription);
 
-      onPipelineUpdate(spec.nodes, spec.edges);
-
-      const assistantMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `Done! I've updated the pipeline. It now has ${spec.nodes.length} nodes and ${spec.edges.length} connections.`,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      for await (const chunk of stream) {
+        if (chunk.type === "text") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === streamMsgId
+                ? { ...m, content: m.content + chunk.content }
+                : m,
+            ),
+          );
+        } else if (chunk.type === "spec") {
+          onPipelineUpdate(chunk.spec.nodes, chunk.spec.edges);
+        }
+      }
     } catch {
-      const errorMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "Sorry, I couldn't process that request. Could you rephrase it?",
-      };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === streamMsgId
+            ? { ...m, content: "Sorry, I couldn't process that request. Could you rephrase it?" }
+            : m,
+        ),
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -113,7 +125,7 @@ export function CanvasChatPanel({
               </div>
             </div>
           ))}
-          {isGenerating && (
+          {isGenerating && messages[messages.length - 1]?.content === "" && (
             <div className="flex justify-start">
               <div className="bg-muted rounded-lg px-3 py-2 text-sm flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />

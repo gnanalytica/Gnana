@@ -11,18 +11,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, AlertTriangle } from "lucide-react";
 import type { Node } from "@xyflow/react";
+import type { ValidationError } from "@/lib/canvas/validation-types";
 
 interface ConfigDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   node: Node | null;
+  validationErrors?: ValidationError[];
   onUpdate: (data: Record<string, unknown>) => void;
   onDelete: () => void;
 }
 
-export function ConfigDrawer({ isOpen, onClose, node, onUpdate, onDelete }: ConfigDrawerProps) {
+export function ConfigDrawer({ isOpen, onClose, node, validationErrors = [], onUpdate, onDelete }: ConfigDrawerProps) {
   if (!node) return null;
   const d = node.data as Record<string, unknown>;
   const nodeType = node.type;
@@ -48,6 +50,25 @@ export function ConfigDrawer({ isOpen, onClose, node, onUpdate, onDelete }: Conf
           <SheetTitle>{title}</SheetTitle>
         </SheetHeader>
         <div className="space-y-4 mt-4">
+          {/* Validation errors */}
+          {validationErrors.length > 0 && (
+            <div className="space-y-1">
+              {validationErrors.map((err, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-2 rounded-md px-3 py-2 text-xs ${
+                    err.severity === "error"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-amber-500/10 text-amber-600"
+                  }`}
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>{err.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* LLM node config */}
           {typeof d.phase === "string" && (
             <>

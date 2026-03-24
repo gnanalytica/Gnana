@@ -8,13 +8,15 @@ export type PipelineNodeType =
   | "parallel"
   | "merge"
   | "transform"
-  | "output";
+  | "output"
+  | "group";
 
 export interface NodeSpec {
   id: string;
   type: PipelineNodeType;
   position: { x: number; y: number };
   data: Record<string, unknown>;
+  parentId?: string;
 }
 
 export interface EdgeSpec {
@@ -22,6 +24,7 @@ export interface EdgeSpec {
   target: string;
   sourceHandle?: string;
   label?: string;
+  dataType?: string;
 }
 
 export interface PipelineSpec {

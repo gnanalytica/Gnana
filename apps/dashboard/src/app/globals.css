@@ -77,3 +77,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Edge flow animation for execution preview */
+@keyframes edge-flow {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}

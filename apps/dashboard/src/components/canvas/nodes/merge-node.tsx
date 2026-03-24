@@ -1,13 +1,21 @@
 "use client";
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Combine } from "lucide-react";
+import { Combine, AlertTriangle } from "lucide-react";
 
 function MergeNodeComponent({ data }: NodeProps) {
   const d = data as Record<string, unknown>;
   const inputCount = typeof d.inputs === "number" ? d.inputs : 2;
+  const hasErrors = Array.isArray(d._errors) && d._errors.length > 0;
+  const isExecuting = d._executing === true;
+  const isExecuted = d._executed === true;
+
   return (
-    <div className="bg-card border-2 border-teal-400 rounded-lg p-4 min-w-[150px] shadow-md">
+    <div
+      className={`bg-card border-2 rounded-lg p-4 min-w-[150px] shadow-md transition-all ${
+        hasErrors ? "border-destructive" : "border-teal-400"
+      } ${isExecuting ? "ring-2 ring-primary animate-pulse" : ""} ${isExecuted ? "opacity-70" : ""}`}
+    >
       {Array.from({ length: inputCount }, (_, i) => (
         <Handle
           key={i}
@@ -22,6 +30,7 @@ function MergeNodeComponent({ data }: NodeProps) {
       <div className="flex items-center gap-2">
         <Combine className="h-4 w-4 text-teal-400" />
         <span className="text-xs uppercase font-semibold text-teal-400">Merge</span>
+        {hasErrors && <AlertTriangle className="h-3 w-3 text-destructive" />}
       </div>
       <div className="text-sm text-foreground mt-1">Wait for {inputCount}</div>
     </div>

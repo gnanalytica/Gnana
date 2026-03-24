@@ -8,7 +8,7 @@ import { Hexagon, Send, Loader2 } from "lucide-react";
 import { TemplateGrid } from "./template-grid";
 import { PipelineSummaryCard } from "./pipeline-summary-card";
 import type { PipelineSpec, ChatMessage } from "@/types/pipeline";
-import { generatePipelineFromPrompt } from "@/lib/pipeline-ai";
+import { streamPipelineResponse } from "@/lib/pipeline-ai-stream";
 
 interface ChatOnboardingProps {
   onOpenCanvas: (spec: PipelineSpec) => void;
@@ -45,24 +45,52 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
       setMessages((prev) => [...prev, userMsg]);
       setIsGenerating(true);
 
+      const streamMsgId = crypto.randomUUID();
+      // Create assistant message immediately with empty content
+      setMessages((prev) => [
+        ...prev,
+        { id: streamMsgId, role: "assistant", content: "" },
+      ]);
+
       try {
-        const spec = await generatePipelineFromPrompt(message);
-        const assistantMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: `I've built a pipeline called **${spec.name}** with ${spec.nodes.length} nodes. Here's a summary:`,
-          pipelineSpec: spec,
-        };
-        setMessages((prev) => [...prev, assistantMsg]);
-        setGeneratedSpec(spec);
+        const stream = streamPipelineResponse(message);
+        let spec: PipelineSpec | null = null;
+
+        for await (const chunk of stream) {
+          if (chunk.type === "text") {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === streamMsgId
+                  ? { ...m, content: m.content + chunk.content }
+                  : m,
+              ),
+            );
+          } else if (chunk.type === "spec") {
+            spec = chunk.spec;
+          }
+        }
+
+        if (spec) {
+          setGeneratedSpec(spec);
+          // Update message with pipeline spec
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === streamMsgId ? { ...m, pipelineSpec: spec! } : m,
+            ),
+          );
+        }
       } catch {
-        const errorMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content:
-            "I couldn't generate a pipeline from that description. Could you provide more details about what you want the agent to do?",
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === streamMsgId
+              ? {
+                  ...m,
+                  content:
+                    "I couldn't generate a pipeline from that description. Could you provide more details about what you want the agent to do?",
+                }
+              : m,
+          ),
+        );
       } finally {
         setIsGenerating(false);
       }
@@ -135,7 +163,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
                 </div>
               </div>
             ))}
-            {isGenerating && (
+            {isGenerating && messages[messages.length - 1]?.content === "" && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-lg px-4 py-2 text-sm flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
