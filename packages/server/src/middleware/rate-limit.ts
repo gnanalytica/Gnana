@@ -1,4 +1,5 @@
 import { createMiddleware } from "hono/factory";
+import { errorResponse } from "../utils/errors.js";
 
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
@@ -44,7 +45,7 @@ export function rateLimit(config: RateLimitConfig = { windowMs: 60_000, maxReque
     c.header("X-RateLimit-Reset", String(Math.ceil(entry.resetAt / 1000)));
 
     if (entry.count > config.maxRequests) {
-      return c.json({ error: "Too many requests. Please try again later." }, 429);
+      return errorResponse(c, 429, "RATE_LIMITED", "Too many requests. Please try again later.");
     }
 
     await next();

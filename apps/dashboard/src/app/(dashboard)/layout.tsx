@@ -1,7 +1,15 @@
+import { redirect } from "next/navigation";
+import { auth } from "../../../auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/auth/signin");
+  }
+
   return (
     <div className="flex h-screen">
       <Sidebar />

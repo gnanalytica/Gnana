@@ -1,6 +1,7 @@
 import { Hono } from "hono";
-import { eq, and, desc, pipelineVersions, type Database } from "@gnana/db";
+import { eq, and, desc, sql, pipelineVersions, type Database } from "@gnana/db";
 import { requireRole } from "../middleware/rbac.js";
+import { errorResponse } from "../utils/errors.js";
 
 export function pipelineVersionRoutes(db: Database) {
   const app = new Hono();
@@ -9,14 +10,29 @@ export function pipelineVersionRoutes(db: Database) {
   app.get("/:agentId", requireRole("viewer"), async (c) => {
     const agentId = c.req.param("agentId");
     const workspaceId = c.get("workspaceId");
+    const limit = Math.min(Number(c.req.query("limit")) || 50, 200);
+    const offset = Number(c.req.query("offset")) || 0;
+
+    const whereClause = and(
+      eq(pipelineVersions.agentId, agentId),
+      eq(pipelineVersions.workspaceId, workspaceId),
+    );
+
     const result = await db
       .select()
       .from(pipelineVersions)
-      .where(
-        and(eq(pipelineVersions.agentId, agentId), eq(pipelineVersions.workspaceId, workspaceId)),
-      )
-      .orderBy(desc(pipelineVersions.version));
-    return c.json(result);
+      .where(whereClause)
+      .orderBy(desc(pipelineVersions.version))
+      .limit(limit)
+      .offset(offset);
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pipelineVersions)
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
+
+    return c.json({ data: result, total, limit, offset });
   });
 
   // Create a new version — editor+
@@ -64,7 +80,7 @@ export function pipelineVersionRoutes(db: Database) {
         and(eq(pipelineVersions.id, versionId), eq(pipelineVersions.workspaceId, workspaceId)),
       );
     if (result.length === 0) {
-      return c.json({ error: "Version not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "Version not found");
     }
     return c.json(result[0]);
   });

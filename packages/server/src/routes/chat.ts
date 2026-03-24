@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { eq, providers, type Database } from "@gnana/db";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { decrypt } from "../utils/encryption.js";
 
 export function chatRoutes(db: Database) {
   const app = new Hono();
@@ -41,23 +42,24 @@ ${pipeline ? JSON.stringify(pipeline, null, 2) : "Empty - no pipeline created ye
     }
 
     const provider = providerList[0];
+    const apiKey = decrypt(provider.apiKey);
 
     try {
       // Call the LLM based on provider type
       let aiResponse: string;
 
       if (provider.type === "anthropic") {
-        aiResponse = await callAnthropic(provider.apiKey, systemPrompt, message, history);
+        aiResponse = await callAnthropic(apiKey, systemPrompt, message, history);
       } else if (provider.type === "openai") {
         aiResponse = await callOpenAI(
-          provider.apiKey,
+          apiKey,
           systemPrompt,
           message,
           history,
           provider.baseUrl,
         );
       } else if (provider.type === "google") {
-        aiResponse = await callGoogle(provider.apiKey, systemPrompt, message, history);
+        aiResponse = await callGoogle(apiKey, systemPrompt, message, history);
       } else {
         aiResponse = "Unsupported provider type. Please configure Anthropic, OpenAI, or Google.";
       }

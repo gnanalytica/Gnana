@@ -1,30 +1,56 @@
 import { Hono } from "hono";
-import { eq, and, providers, type Database } from "@gnana/db";
+import { eq, and, desc, sql, providers, type Database } from "@gnana/db";
 import { requireRole } from "../middleware/rbac.js";
+import { cacheControl } from "../middleware/cache.js";
+import { encrypt } from "../utils/encryption.js";
+import { createProviderSchema } from "../validation/schemas.js";
 
 export function providerRoutes(db: Database) {
   const app = new Hono();
 
   // List providers — viewer+
-  app.get("/", requireRole("viewer"), async (c) => {
+  app.get("/", requireRole("viewer"), cacheControl("private, max-age=60"), async (c) => {
     const workspaceId = c.get("workspaceId");
-    const result = await db.select().from(providers).where(eq(providers.workspaceId, workspaceId));
+    const limit = Math.min(Number(c.req.query("limit")) || 50, 200);
+    const offset = Number(c.req.query("offset")) || 0;
+
+    const whereClause = eq(providers.workspaceId, workspaceId);
+
+    const result = await db
+      .select()
+      .from(providers)
+      .where(whereClause)
+      .orderBy(desc(providers.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(providers)
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
+
     // Strip API keys from response
-    return c.json(result.map((p) => ({ ...p, apiKey: "***" })));
+    return c.json({ data: result.map((p) => ({ ...p, apiKey: "***" })), total, limit, offset });
   });
 
   // Register provider — admin+
   app.post("/", requireRole("admin"), async (c) => {
     const workspaceId = c.get("workspaceId");
     const body = await c.req.json();
+    const parsed = createProviderSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Validation failed", details: parsed.error.flatten().fieldErrors } }, 400);
+    }
+    const data = parsed.data;
     const result = await db
       .insert(providers)
       .values({
-        name: body.name,
-        type: body.type,
-        apiKey: body.apiKey,
-        baseUrl: body.baseUrl,
-        config: body.config ?? {},
+        name: data.name,
+        type: data.type,
+        apiKey: encrypt(data.apiKey),
+        baseUrl: data.baseUrl,
+        config: data.config ?? {},
         workspaceId,
       })
       .returning();

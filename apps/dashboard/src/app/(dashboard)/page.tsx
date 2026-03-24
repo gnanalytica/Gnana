@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Bot, Play, Clock, Plus, AlertCircle } from "lucide-react";
+import { Bot, Play, Clock, Plus, AlertCircle, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,8 +47,8 @@ function formatRelativeTime(iso: string) {
 }
 
 export default function DashboardHome() {
-  const { agents, isLoading: agentsLoading, error: agentsError } = useAgents();
-  const { runs, isLoading: runsLoading, error: runsError } = useRuns();
+  const { agents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAgents();
+  const { runs, isLoading: runsLoading, error: runsError, refetch: refetchRuns } = useRuns();
 
   const isLoading = agentsLoading || runsLoading;
   const connectionError = agentsError || runsError;
@@ -84,13 +84,24 @@ export default function DashboardHome() {
         <Card>
           <CardContent className="flex items-center gap-3 py-8">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-destructive">Cannot connect to server</p>
               <p className="text-sm text-muted-foreground">
                 Make sure the Gnana server is running at{" "}
                 {process.env.NEXT_PUBLIC_GNANA_API_URL ?? "http://localhost:4000"}
               </p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                refetchAgents();
+                refetchRuns();
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
           </CardContent>
         </Card>
       </div>

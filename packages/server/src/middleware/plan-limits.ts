@@ -1,5 +1,49 @@
 import { createMiddleware } from "hono/factory";
 import { eq, sql, workspaces, plans, usageRecords, type Database } from "@gnana/db";
+import { getCached, setCache } from "./cache.js";
+import { errorResponse } from "../utils/errors.js";
+
+const PLAN_TTL = 300_000; // 5 minutes
+
+interface PlanCache {
+  planId: string | null;
+  maxAgents: number;
+  maxConnectors: number;
+  maxMembers: number;
+  maxRunsMonth: number;
+}
+
+/**
+ * Fetch the workspace plan (with caching). Returns undefined if no plan.
+ */
+async function getWorkspacePlan(db: Database, workspaceId: string): Promise<PlanCache | undefined> {
+  const cacheKey = `plan:${workspaceId}`;
+  const cached = getCached<PlanCache>(cacheKey);
+  if (cached) return cached;
+
+  const ws = await db
+    .select({ planId: workspaces.planId })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId))
+    .limit(1);
+
+  if (!ws[0]?.planId) return undefined;
+
+  const planRows = await db.select().from(plans).where(eq(plans.id, ws[0].planId)).limit(1);
+
+  if (!planRows[0]) return undefined;
+
+  const result: PlanCache = {
+    planId: ws[0].planId,
+    maxAgents: planRows[0].maxAgents,
+    maxConnectors: planRows[0].maxConnectors,
+    maxMembers: planRows[0].maxMembers,
+    maxRunsMonth: planRows[0].maxRunsMonth,
+  };
+
+  setCache(cacheKey, result, PLAN_TTL);
+  return result;
+}
 
 /**
  * Middleware factory that checks workspace plan limits before resource creation.
@@ -13,27 +57,14 @@ export function planLimit(
   return createMiddleware(async (c, next) => {
     const workspaceId = c.get("workspaceId") as string;
 
-    // Get workspace's plan
-    const ws = await db
-      .select({ planId: workspaces.planId })
-      .from(workspaces)
-      .where(eq(workspaces.id, workspaceId))
-      .limit(1);
-
-    if (!ws[0]?.planId) {
+    const plan = await getWorkspacePlan(db, workspaceId);
+    if (!plan) {
       // No plan assigned — no limits enforced
       await next();
       return;
     }
 
-    const plan = await db.select().from(plans).where(eq(plans.id, ws[0].planId)).limit(1);
-
-    if (!plan[0]) {
-      await next();
-      return;
-    }
-
-    const limit = plan[0][limitField];
+    const limit = plan[limitField];
     if (limit === -1) {
       // -1 means unlimited
       await next();
@@ -49,13 +80,11 @@ export function planLimit(
     const current = countResult[0]?.count ?? 0;
 
     if (current >= limit) {
-      return c.json(
-        {
-          error: `Plan limit reached for ${limitField}. Upgrade your plan to create more.`,
-          limit,
-          current,
-        },
+      return errorResponse(
+        c,
         403,
+        "FORBIDDEN",
+        `Plan limit reached for ${limitField} (${current}/${limit}). Upgrade your plan to create more.`,
       );
     }
 
@@ -76,26 +105,13 @@ export function planRunLimit(db: Database) {
   return createMiddleware(async (c, next) => {
     const workspaceId = c.get("workspaceId") as string;
 
-    // Get workspace's plan
-    const ws = await db
-      .select({ planId: workspaces.planId })
-      .from(workspaces)
-      .where(eq(workspaces.id, workspaceId))
-      .limit(1);
-
-    if (!ws[0]?.planId) {
+    const plan = await getWorkspacePlan(db, workspaceId);
+    if (!plan) {
       await next();
       return;
     }
 
-    const plan = await db.select().from(plans).where(eq(plans.id, ws[0].planId)).limit(1);
-
-    if (!plan[0]) {
-      await next();
-      return;
-    }
-
-    const limit = plan[0].maxRunsMonth;
+    const limit = plan.maxRunsMonth;
     if (limit === -1) {
       await next();
       return;
@@ -114,13 +130,11 @@ export function planRunLimit(db: Database) {
     const current = usage[0]?.runsCount ?? 0;
 
     if (current >= limit) {
-      return c.json(
-        {
-          error: "Monthly run limit reached. Upgrade your plan to run more agents.",
-          limit,
-          current,
-        },
+      return errorResponse(
+        c,
         403,
+        "FORBIDDEN",
+        `Monthly run limit reached (${current}/${limit}). Upgrade your plan to run more agents.`,
       );
     }
 

@@ -5,6 +5,7 @@ import { eq, apiKeys, type Database } from "@gnana/db";
 import { createHash } from "node:crypto";
 import * as Sentry from "@sentry/node";
 import { authLog } from "../logger.js";
+import { errorResponse } from "../utils/errors.js";
 
 // Extend Hono context with auth info
 declare module "hono" {
@@ -19,7 +20,7 @@ export function authMiddleware(db: Database) {
     const authHeader = c.req.header("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       authLog.warn({ path: c.req.path }, "Missing authorization header");
-      return c.json({ error: "Missing authorization header" }, 401);
+      return errorResponse(c, 401, "UNAUTHORIZED", "Missing authorization header");
     }
 
     const token = authHeader.slice(7);
@@ -41,7 +42,7 @@ async function handleJwt(c: Context, next: Next, token: string) {
 
     if (!payload.sub) {
       authLog.warn({ path: c.req.path }, "JWT missing subject claim");
-      return c.json({ error: "Invalid token: missing subject" }, 401);
+      return errorResponse(c, 401, "UNAUTHORIZED", "Invalid token: missing subject");
     }
 
     c.set("userId", payload.sub);
@@ -50,7 +51,7 @@ async function handleJwt(c: Context, next: Next, token: string) {
     await next();
   } catch (err) {
     authLog.warn({ err, path: c.req.path }, "JWT verification failed");
-    return c.json({ error: "Invalid or expired token" }, 401);
+    return errorResponse(c, 401, "UNAUTHORIZED", "Invalid or expired token");
   }
 }
 
@@ -63,12 +64,12 @@ async function handleApiKey(c: Context, next: Next, db: Database, key: string) {
     const apiKey = result[0];
     if (!apiKey) {
       authLog.warn({ path: c.req.path }, "Invalid API key");
-      return c.json({ error: "Invalid API key" }, 401);
+      return errorResponse(c, 401, "UNAUTHORIZED", "Invalid API key");
     }
 
     if (apiKey.expiresAt && new Date(apiKey.expiresAt) < new Date()) {
       authLog.warn({ path: c.req.path, keyId: apiKey.id }, "Expired API key used");
-      return c.json({ error: "API key expired" }, 401);
+      return errorResponse(c, 401, "UNAUTHORIZED", "API key expired");
     }
 
     // Update last used timestamp (fire-and-forget)
@@ -85,6 +86,6 @@ async function handleApiKey(c: Context, next: Next, db: Database, key: string) {
     await next();
   } catch (err) {
     authLog.error({ err, path: c.req.path }, "API key validation failed");
-    return c.json({ error: "API key validation failed" }, 401);
+    return errorResponse(c, 401, "UNAUTHORIZED", "API key validation failed");
   }
 }

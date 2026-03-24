@@ -21,6 +21,7 @@ import { rateLimit } from "./middleware/rate-limit.js";
 import { requestLogger } from "./middleware/request-logger.js";
 import { serverLog, jobLog } from "./logger.js";
 import { JobQueue } from "./job-queue.js";
+import { errorResponse } from "./utils/errors.js";
 
 if (process.env.SENTRY_DSN) {
   Sentry.init({
@@ -176,7 +177,7 @@ function createApp(db: Database, events: EventBus, queue: JobQueue) {
       if (workspaceId) scope.setTag("workspace.id", workspaceId);
       Sentry.captureException(err);
     });
-    return c.json({ error: "Internal server error" }, 500);
+    return errorResponse(c, 500, "INTERNAL_ERROR", "Internal server error");
   });
 
   // Protected API routes — auth + workspace resolution + rate limiting
@@ -203,4 +204,6 @@ function createApp(db: Database, events: EventBus, queue: JobQueue) {
 export { createEventBus } from "@gnana/core";
 export { connectionManager } from "./ws.js";
 export { JobQueue } from "./job-queue.js";
+export { errorResponse } from "./utils/errors.js";
+export type { ErrorCode } from "./utils/errors.js";
 export type { GnanaServerConfig as ServerConfig };

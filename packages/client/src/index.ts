@@ -3,12 +3,23 @@ export interface GnanaClientConfig {
   apiKey?: string;
   /** Dynamic token getter — called on every request to supply a fresh JWT */
   getToken?: () => Promise<string | null | undefined> | string | null | undefined;
+  /** Maximum number of retries for network errors and 5xx responses (default: 3) */
+  maxRetries?: number;
+  /** Request timeout in milliseconds (default: 30000) */
+  timeoutMs?: number;
 }
 
+/** Default retry configuration */
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_TIMEOUT_MS = 30_000;
+const BASE_BACKOFF_MS = 1000;
+
 export class GnanaClient {
-  private baseUrl: string;
+  protected baseUrl: string;
   private apiKey?: string;
   private getToken?: GnanaClientConfig["getToken"];
+  private maxRetries: number;
+  private timeoutMs: number;
 
   readonly agents: AgentsAPI;
   readonly runs: RunsAPI;
@@ -19,6 +30,8 @@ export class GnanaClient {
     this.baseUrl = config.url.replace(/\/$/, "");
     this.apiKey = config.apiKey;
     this.getToken = config.getToken;
+    this.maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
+    this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.agents = new AgentsAPI(this);
     this.runs = new RunsAPI(this);
     this.connectors = new ConnectorsAPI(this);
@@ -41,17 +54,55 @@ export class GnanaClient {
       ...(init?.headers as Record<string, string>),
     };
 
-    const response = await globalThis.fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers,
-    });
+    let lastError: unknown;
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new GnanaError(response.status, body);
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      // Wait with exponential backoff before retrying (skip delay on first attempt)
+      if (attempt > 0) {
+        const delayMs = BASE_BACKOFF_MS * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        await sleep(delayMs);
+      }
+
+      try {
+        const response = await fetchWithTimeout(
+          `${this.baseUrl}${path}`,
+          { ...init, headers },
+          this.timeoutMs,
+        );
+
+        // Don't retry on 4xx — these are client errors
+        if (response.status >= 400 && response.status < 500) {
+          const body = await response.text().catch(() => "");
+          throw new GnanaError(response.status, body);
+        }
+
+        // Retry on 5xx server errors
+        if (response.status >= 500) {
+          lastError = new GnanaError(
+            response.status,
+            await response.text().catch(() => ""),
+          );
+          if (attempt < this.maxRetries) continue;
+          throw lastError;
+        }
+
+        return response;
+      } catch (err) {
+        // If it's a client error (4xx), don't retry — rethrow immediately
+        if (err instanceof GnanaError && err.status >= 400 && err.status < 500) {
+          throw err;
+        }
+
+        // Network errors and timeouts are retryable
+        lastError = err;
+        if (attempt >= this.maxRetries) {
+          throw lastError;
+        }
+      }
     }
 
-    return response;
+    // Should never reach here, but satisfy TypeScript
+    throw lastError;
   }
 
   createWebSocket(path: string): WebSocket {
@@ -67,6 +118,39 @@ export class GnanaError extends Error {
   ) {
     super(`Gnana API error ${status}: ${body}`);
     this.name = "GnanaError";
+  }
+}
+
+// ---- Internal helpers ----
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Wraps globalThis.fetch with an AbortController-based timeout.
+ */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await globalThis.fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new GnanaError(0, `Request timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

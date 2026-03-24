@@ -1,11 +1,28 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createDatabase, users, workspaces, workspaceMembers, plans, eq } from "@gnana/db";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 const db = createDatabase(process.env.DATABASE_URL!);
 
+// 5 signup attempts per IP per 15 minutes
+const signupLimiter = createRateLimiter({ maxAttempts: 5, windowMs: 15 * 60 * 1000 });
+
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const { allowed, retryAfterMs } = signupLimiter.check(`signup:${ip}`);
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many signup attempts. Please try again later." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) },
+        },
+      );
+    }
+
     const { name, email, password } = await request.json();
 
     if (!email || !password) {

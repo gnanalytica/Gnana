@@ -4,26 +4,41 @@ import type { EventBus } from "@gnana/core";
 import { requireRole } from "../middleware/rbac.js";
 import { planRunLimit } from "../middleware/plan-limits.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { cacheControl } from "../middleware/cache.js";
 import type { JobQueue } from "../job-queue.js";
+import { createRunSchema } from "../validation/schemas.js";
+import { errorResponse } from "../utils/errors.js";
 
 export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
   const app = new Hono();
 
   // List runs — viewer+
-  app.get("/", requireRole("viewer"), async (c) => {
+  app.get("/", requireRole("viewer"), cacheControl("private, max-age=30"), async (c) => {
     const workspaceId = c.get("workspaceId");
-    const limit = Number(c.req.query("limit") ?? "50");
+    const limit = Math.min(Number(c.req.query("limit")) || 50, 200);
+    const offset = Number(c.req.query("offset")) || 0;
+
+    const whereClause = eq(runs.workspaceId, workspaceId);
+
     const result = await db
       .select()
       .from(runs)
-      .where(eq(runs.workspaceId, workspaceId))
+      .where(whereClause)
       .orderBy(desc(runs.createdAt))
-      .limit(limit);
-    return c.json(result);
+      .limit(limit)
+      .offset(offset);
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(runs)
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
+
+    return c.json({ data: result, total, limit, offset });
   });
 
   // Get run by ID — viewer+
-  app.get("/:id", requireRole("viewer"), async (c) => {
+  app.get("/:id", requireRole("viewer"), cacheControl("private, max-age=120"), async (c) => {
     const id = c.req.param("id");
     const workspaceId = c.get("workspaceId");
     const result = await db
@@ -31,7 +46,7 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
       .from(runs)
       .where(and(eq(runs.id, id), eq(runs.workspaceId, workspaceId)));
     if (result.length === 0) {
-      return c.json({ error: "Run not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "Run not found");
     }
     return c.json(result[0]);
   });
@@ -45,13 +60,18 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
     async (c) => {
       const workspaceId = c.get("workspaceId");
       const body = await c.req.json();
+      const parsed = createRunSchema.safeParse(body);
+      if (!parsed.success) {
+        return c.json({ error: { code: "VALIDATION_ERROR", message: "Validation failed", details: parsed.error.flatten().fieldErrors } }, 400);
+      }
+      const data = parsed.data;
       const result = await db
         .insert(runs)
         .values({
-          agentId: body.agentId,
+          agentId: data.agentId,
           status: "queued",
-          triggerType: body.triggerType ?? "manual",
-          triggerData: body.payload ?? {},
+          triggerType: data.triggerType ?? "manual",
+          triggerData: data.payload ?? {},
           workspaceId,
         })
         .returning();
@@ -100,7 +120,7 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
       .where(and(eq(runs.id, id), eq(runs.workspaceId, workspaceId)))
       .returning();
     if (result.length === 0) {
-      return c.json({ error: "Run not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "Run not found");
     }
     await events.emit("run:approved", { runId: id, modifications: body.modifications });
     return c.json(result[0]);
@@ -117,7 +137,7 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
       .where(and(eq(runs.id, id), eq(runs.workspaceId, workspaceId)))
       .returning();
     if (result.length === 0) {
-      return c.json({ error: "Run not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "Run not found");
     }
     await events.emit("run:rejected", { runId: id, reason: body.reason });
     return c.json(result[0]);
@@ -133,7 +153,7 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
       .where(and(eq(runs.id, id), eq(runs.workspaceId, workspaceId)))
       .returning();
     if (result.length === 0) {
-      return c.json({ error: "Run not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "Run not found");
     }
     return c.json(result[0]);
   });
@@ -141,8 +161,37 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
   // Get run logs — viewer+
   app.get("/:id/logs", requireRole("viewer"), async (c) => {
     const id = c.req.param("id");
-    const result = await db.select().from(runLogs).where(eq(runLogs.runId, id));
-    return c.json(result);
+    const workspaceId = c.get("workspaceId");
+
+    // Verify the run belongs to the current workspace before returning logs
+    const run = await db
+      .select({ id: runs.id })
+      .from(runs)
+      .where(and(eq(runs.id, id), eq(runs.workspaceId, workspaceId)));
+    if (run.length === 0) {
+      return errorResponse(c, 404, "NOT_FOUND", "Run not found");
+    }
+
+    const limit = Math.min(Number(c.req.query("limit")) || 50, 200);
+    const offset = Number(c.req.query("offset")) || 0;
+
+    const whereClause = eq(runLogs.runId, id);
+
+    const result = await db
+      .select()
+      .from(runLogs)
+      .where(whereClause)
+      .orderBy(desc(runLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(runLogs)
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
+
+    return c.json({ data: result, total, limit, offset });
   });
 
   return app;

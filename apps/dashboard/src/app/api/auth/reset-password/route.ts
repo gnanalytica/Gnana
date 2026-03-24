@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createDatabase, users, passwordResetTokens, eq } from "@gnana/db";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 const db = createDatabase(process.env.DATABASE_URL!);
+
+// 5 reset attempts per token per hour
+const resetPasswordLimiter = createRateLimiter({ maxAttempts: 5, windowMs: 60 * 60 * 1000 });
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +14,21 @@ export async function POST(request: Request) {
 
     if (!token || !password) {
       return NextResponse.json({ error: "Token and password are required" }, { status: 400 });
+    }
+
+    // Rate limit by token to prevent brute-force attempts
+    const { allowed, retryAfterMs } = resetPasswordLimiter.check(
+      `reset-password:${token as string}`,
+    );
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many reset attempts. Please request a new reset link." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) },
+        },
+      );
     }
 
     if (password.length < 8) {

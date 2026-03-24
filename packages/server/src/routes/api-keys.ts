@@ -1,23 +1,38 @@
 import { Hono } from "hono";
-import { eq, and, desc, apiKeys, type Database } from "@gnana/db";
+import { eq, and, desc, sql, apiKeys, type Database } from "@gnana/db";
 import { requireRole } from "../middleware/rbac.js";
 import { randomBytes, createHash } from "node:crypto";
+import { cacheControl } from "../middleware/cache.js";
+import { errorResponse } from "../utils/errors.js";
 
 export function apiKeyRoutes(db: Database) {
   const app = new Hono();
 
   // List API keys — viewer+
-  app.get("/", requireRole("viewer"), async (c) => {
+  app.get("/", requireRole("viewer"), cacheControl("private, max-age=60"), async (c) => {
     const workspaceId = c.get("workspaceId");
+    const limit = Math.min(Number(c.req.query("limit")) || 50, 200);
+    const offset = Number(c.req.query("offset")) || 0;
+
+    const whereClause = eq(apiKeys.workspaceId, workspaceId);
+
     const result = await db
       .select()
       .from(apiKeys)
-      .where(eq(apiKeys.workspaceId, workspaceId))
-      .orderBy(desc(apiKeys.createdAt));
+      .where(whereClause)
+      .orderBy(desc(apiKeys.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(apiKeys)
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
 
     // Mask actual keys — show prefix + last 4 chars
-    return c.json(
-      result.map((k) => ({
+    return c.json({
+      data: result.map((k) => ({
         id: k.id,
         name: k.name,
         prefix: k.prefix,
@@ -26,7 +41,10 @@ export function apiKeyRoutes(db: Database) {
         expiresAt: k.expiresAt,
         createdAt: k.createdAt,
       })),
-    );
+      total,
+      limit,
+      offset,
+    });
   });
 
   // Create API key — admin+
@@ -36,7 +54,7 @@ export function apiKeyRoutes(db: Database) {
     const body = await c.req.json();
 
     if (!body.name) {
-      return c.json({ error: "Name is required" }, 400);
+      return errorResponse(c, 400, "VALIDATION_ERROR", "Name is required");
     }
 
     // Generate key: gnk_ + 32 random hex chars
@@ -82,7 +100,7 @@ export function apiKeyRoutes(db: Database) {
       .returning();
 
     if (result.length === 0) {
-      return c.json({ error: "API key not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "API key not found");
     }
 
     return c.json({ ok: true });

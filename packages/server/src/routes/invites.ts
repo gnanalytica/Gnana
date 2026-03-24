@@ -8,6 +8,7 @@ import {
   users,
   type Database,
 } from "@gnana/db";
+import { errorResponse } from "../utils/errors.js";
 
 /**
  * Public invite routes — no auth required.
@@ -32,11 +33,11 @@ export function publicInviteRoutes(db: Database) {
 
     const row = result[0];
     if (!row) {
-      return c.json({ error: "Invite not found or expired" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "Invite not found or expired");
     }
 
     if (new Date(row.invite.expiresAt) < new Date()) {
-      return c.json({ error: "Invite has expired" }, 410);
+      return errorResponse(c, 410, "NOT_FOUND", "Invite has expired");
     }
 
     // Look up inviter name
@@ -82,7 +83,7 @@ export function protectedInviteRoutes(db: Database) {
     const userId = c.get("userId");
 
     if (!userId) {
-      return c.json({ error: "Authentication required" }, 401);
+      return errorResponse(c, 401, "UNAUTHORIZED", "Authentication required");
     }
 
     const result = await db
@@ -93,11 +94,11 @@ export function protectedInviteRoutes(db: Database) {
 
     const invite = result[0];
     if (!invite) {
-      return c.json({ error: "Invite not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "Invite not found");
     }
 
     if (new Date(invite.expiresAt) < new Date()) {
-      return c.json({ error: "Invite has expired" }, 410);
+      return errorResponse(c, 410, "NOT_FOUND", "Invite has expired");
     }
 
     // Verify the user exists
@@ -105,7 +106,7 @@ export function protectedInviteRoutes(db: Database) {
 
     const user = userResult[0];
     if (!user) {
-      return c.json({ error: "User not found" }, 404);
+      return errorResponse(c, 404, "NOT_FOUND", "User not found");
     }
 
     // Check if user is already a member
@@ -126,17 +127,18 @@ export function protectedInviteRoutes(db: Database) {
       return c.json({ ok: true, message: "Already a member of this workspace" });
     }
 
-    // Create the membership
-    await db.insert(workspaceMembers).values({
-      workspaceId: invite.workspaceId,
-      userId,
-      role: invite.role,
-      invitedBy: invite.invitedBy,
-      acceptedAt: new Date(),
-    });
+    // Wrap membership creation + invite deletion in a transaction
+    await db.transaction(async (tx) => {
+      await tx.insert(workspaceMembers).values({
+        workspaceId: invite.workspaceId,
+        userId,
+        role: invite.role,
+        invitedBy: invite.invitedBy,
+        acceptedAt: new Date(),
+      });
 
-    // Delete the invite after acceptance
-    await db.delete(workspaceInvites).where(eq(workspaceInvites.id, invite.id));
+      await tx.delete(workspaceInvites).where(eq(workspaceInvites.id, invite.id));
+    });
 
     return c.json({ ok: true, workspaceId: invite.workspaceId });
   });
