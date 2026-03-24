@@ -6,7 +6,21 @@ export * from "./schema.js";
 export { schema };
 
 // Re-export drizzle-orm operators to avoid duplicate-instance issues in monorepos
-export { eq, and, or, desc, asc, sql, inArray, isNull, isNotNull } from "drizzle-orm";
+export {
+  eq,
+  and,
+  or,
+  desc,
+  asc,
+  sql,
+  gt,
+  gte,
+  lt,
+  lte,
+  inArray,
+  isNull,
+  isNotNull,
+} from "drizzle-orm";
 
 export type Database = ReturnType<typeof createDatabase>;
 

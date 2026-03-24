@@ -17,6 +17,9 @@ import { chatRoutes } from "./routes/chat.js";
 import { connectionManager } from "./ws.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { workspaceMiddleware } from "./middleware/workspace.js";
+import { rateLimit } from "./middleware/rate-limit.js";
+import { requestLogger } from "./middleware/request-logger.js";
+import { serverLog, jobLog } from "./logger.js";
 import { JobQueue } from "./job-queue.js";
 
 if (process.env.SENTRY_DSN) {
@@ -24,6 +27,7 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV ?? "development",
     tracesSampleRate: 1.0,
+    integrations: [Sentry.captureConsoleIntegration({ levels: ["warn", "error"] })],
   });
 }
 
@@ -72,12 +76,14 @@ export function createGnanaServer(config: GnanaServerConfig) {
       runId: string;
       agentId: string;
     };
+    jobLog.info({ runId, agentId }, "run:execute started");
 
     // Load agent config from DB
     const agentRows = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1);
 
     const agent = agentRows[0];
     if (!agent) {
+      jobLog.warn({ runId, agentId }, "run:execute failed — agent not found");
       await db
         .update(runs)
         .set({ status: "failed", error: "Agent not found", updatedAt: new Date() })
@@ -102,6 +108,7 @@ export function createGnanaServer(config: GnanaServerConfig) {
       .set({ status: "completed", updatedAt: new Date() })
       .where(eq(runs.id, runId));
     await events.emit("run:completed", { runId });
+    jobLog.info({ runId, agentId }, "run:execute completed");
   });
 
   return {
@@ -113,7 +120,10 @@ export function createGnanaServer(config: GnanaServerConfig) {
       const port = config.port ?? 4000;
       queue.start();
       const httpServer = serve({ fetch: app.fetch, port }, (info) => {
-        console.log(`Gnana server running on http://localhost:${info.port}`);
+        serverLog.info(
+          { port: info.port },
+          `Gnana server running on http://localhost:${info.port}`,
+        );
       });
       return httpServer;
     },
@@ -125,6 +135,7 @@ function createApp(db: Database, events: EventBus, queue: JobQueue) {
 
   // Middleware
   app.use("*", cors());
+  app.use("*", requestLogger);
 
   // Public routes (no auth required)
   app.get("/", (c) =>
@@ -147,16 +158,32 @@ function createApp(db: Database, events: EventBus, queue: JobQueue) {
   authOnly.route("/invites", protectedInviteRoutes(db));
   app.route("/api/auth-actions", authOnly);
 
-  // Sentry error handler
+  // Error handler — log + report to Sentry with request context
   app.onError((err, c) => {
-    Sentry.captureException(err);
+    const userId = c.get("userId" as never) as string | undefined;
+    const workspaceId = c.get("workspaceId" as never) as string | undefined;
+    serverLog.error(
+      { err, method: c.req.method, path: c.req.path, userId, workspaceId },
+      `Unhandled error: ${c.req.method} ${c.req.path}`,
+    );
+    Sentry.withScope((scope) => {
+      scope.setContext("request", {
+        method: c.req.method,
+        url: c.req.url,
+        path: c.req.path,
+      });
+      if (userId) scope.setTag("user.id", userId);
+      if (workspaceId) scope.setTag("workspace.id", workspaceId);
+      Sentry.captureException(err);
+    });
     return c.json({ error: "Internal server error" }, 500);
   });
 
-  // Protected API routes — auth + workspace resolution
+  // Protected API routes — auth + workspace resolution + rate limiting
   const api = new Hono();
   api.use("*", authMiddleware(db));
   api.use("*", workspaceMiddleware(db));
+  api.use("*", rateLimit({ windowMs: 60_000, maxRequests: 100 }));
 
   // Mount route groups
   api.route("/agents", agentRoutes(db));

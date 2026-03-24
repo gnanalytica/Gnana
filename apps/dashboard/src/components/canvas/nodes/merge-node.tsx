@@ -9,12 +9,14 @@ function MergeNodeComponent({ data }: NodeProps) {
   const hasErrors = Array.isArray(d._errors) && d._errors.length > 0;
   const isExecuting = d._executing === true;
   const isExecuted = d._executed === true;
+  const isCompleted = d._completed === true;
+  const isFailed = d._failed === true;
 
   return (
     <div
       className={`bg-card border-2 rounded-lg p-4 min-w-[150px] shadow-md transition-all ${
         hasErrors ? "border-destructive" : "border-teal-400"
-      } ${isExecuting ? "ring-2 ring-primary animate-pulse" : ""} ${isExecuted ? "opacity-70" : ""}`}
+      } ${isExecuting ? "ring-2 ring-blue-500 animate-pulse" : ""} ${isCompleted ? "ring-2 ring-green-500/50" : ""} ${isFailed ? "ring-2 ring-red-500" : ""} ${isExecuted ? "opacity-70" : ""}`}
     >
       {Array.from({ length: inputCount }, (_, i) => (
         <Handle

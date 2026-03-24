@@ -9,12 +9,14 @@ function ParallelNodeComponent({ data }: NodeProps) {
   const hasErrors = Array.isArray(d._errors) && d._errors.length > 0;
   const isExecuting = d._executing === true;
   const isExecuted = d._executed === true;
+  const isCompleted = d._completed === true;
+  const isFailed = d._failed === true;
 
   return (
     <div
       className={`bg-card border-2 rounded-lg p-4 min-w-[150px] shadow-md transition-all ${
         hasErrors ? "border-destructive" : "border-cyan-400"
-      } ${isExecuting ? "ring-2 ring-primary animate-pulse" : ""} ${isExecuted ? "opacity-70" : ""}`}
+      } ${isExecuting ? "ring-2 ring-blue-500 animate-pulse" : ""} ${isCompleted ? "ring-2 ring-green-500/50" : ""} ${isFailed ? "ring-2 ring-red-500" : ""} ${isExecuted ? "opacity-70" : ""}`}
     >
       <Handle type="target" position={Position.Left} className="!bg-cyan-400" />
       {Array.from({ length: branchCount }, (_, i) => (

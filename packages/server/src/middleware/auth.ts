@@ -3,6 +3,8 @@ import { createMiddleware } from "hono/factory";
 import * as jose from "jose";
 import { eq, apiKeys, type Database } from "@gnana/db";
 import { createHash } from "node:crypto";
+import * as Sentry from "@sentry/node";
+import { authLog } from "../logger.js";
 
 // Extend Hono context with auth info
 declare module "hono" {
@@ -16,6 +18,7 @@ export function authMiddleware(db: Database) {
   return createMiddleware(async (c: Context, next: Next) => {
     const authHeader = c.req.header("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      authLog.warn({ path: c.req.path }, "Missing authorization header");
       return c.json({ error: "Missing authorization header" }, 401);
     }
 
@@ -37,13 +40,16 @@ async function handleJwt(c: Context, next: Next, token: string) {
     const { payload } = await jose.jwtVerify(token, secret);
 
     if (!payload.sub) {
+      authLog.warn({ path: c.req.path }, "JWT missing subject claim");
       return c.json({ error: "Invalid token: missing subject" }, 401);
     }
 
     c.set("userId", payload.sub);
     c.set("userEmail", (payload.email as string) ?? "");
+    Sentry.setUser({ id: payload.sub, email: (payload.email as string) ?? undefined });
     await next();
-  } catch {
+  } catch (err) {
+    authLog.warn({ err, path: c.req.path }, "JWT verification failed");
     return c.json({ error: "Invalid or expired token" }, 401);
   }
 }
@@ -56,10 +62,12 @@ async function handleApiKey(c: Context, next: Next, db: Database, key: string) {
 
     const apiKey = result[0];
     if (!apiKey) {
+      authLog.warn({ path: c.req.path }, "Invalid API key");
       return c.json({ error: "Invalid API key" }, 401);
     }
 
     if (apiKey.expiresAt && new Date(apiKey.expiresAt) < new Date()) {
+      authLog.warn({ path: c.req.path, keyId: apiKey.id }, "Expired API key used");
       return c.json({ error: "API key expired" }, 401);
     }
 
@@ -72,8 +80,11 @@ async function handleApiKey(c: Context, next: Next, db: Database, key: string) {
     // For API key auth, use the key creator as the authenticated user
     c.set("userId", apiKey.createdBy ?? "system");
     c.set("userEmail", "");
+    Sentry.setUser({ id: apiKey.createdBy ?? "system" });
+    Sentry.setTag("auth.method", "api_key");
     await next();
-  } catch {
+  } catch (err) {
+    authLog.error({ err, path: c.req.path }, "API key validation failed");
     return c.json({ error: "API key validation failed" }, 401);
   }
 }

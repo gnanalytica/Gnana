@@ -197,14 +197,28 @@ function specToEdges(specs: EdgeSpec[]): Edge[] {
   }));
 }
 
+export interface LiveRunOverlay {
+  executingNodeId: string | null;
+  completedNodeIds: Set<string>;
+  failedNodeIds: Set<string>;
+  isRunning: boolean;
+}
+
 export interface PipelineCanvasProps {
   initialNodes?: NodeSpec[];
   initialEdges?: EdgeSpec[];
   /** Called whenever the pipeline changes (for bidirectional sync) */
   onChange?: (nodes: NodeSpec[], edges: EdgeSpec[]) => void;
+  /** Live run overlay state — lights up nodes during execution */
+  liveRun?: LiveRunOverlay | null;
 }
 
-function PipelineCanvasInner({ initialNodes, initialEdges, onChange }: PipelineCanvasProps) {
+function PipelineCanvasInner({
+  initialNodes,
+  initialEdges,
+  onChange,
+  liveRun,
+}: PipelineCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(
     initialNodes ? specToNodes(initialNodes) : createDefaultNodes(),
   );
@@ -278,25 +292,32 @@ function PipelineCanvasInner({ initialNodes, initialEdges, onChange }: PipelineC
     }, 500);
   }, [nodes, edges]);
 
-  // Inject _errors and _executing into node data for rendering
+  // Inject _errors, _executing, _completed, _failed into node data for rendering
   useEffect(() => {
     setNodes((nds) =>
       nds.map((n) => {
         const errors = validationErrors.get(n.id);
-        const isExecuting = execPreview.currentNodeId === n.id;
-        const isExecuted = execPreview.executedNodeIds.has(n.id);
+        // Preview state (local simulation)
+        const isPreviewExecuting = execPreview.currentNodeId === n.id;
+        const isPreviewExecuted = execPreview.executedNodeIds.has(n.id);
+        // Live run state (real execution via WebSocket) takes priority
+        const isLiveExecuting = liveRun?.isRunning && liveRun.executingNodeId === n.id;
+        const isLiveCompleted = liveRun?.isRunning && liveRun.completedNodeIds.has(n.id);
+        const isLiveFailed = liveRun?.failedNodeIds.has(n.id);
         return {
           ...n,
           data: {
             ...n.data,
             _errors: errors ?? null,
-            _executing: isExecuting,
-            _executed: isExecuted,
+            _executing: isLiveExecuting || isPreviewExecuting,
+            _executed: isPreviewExecuted,
+            _completed: isLiveCompleted ?? false,
+            _failed: isLiveFailed ?? false,
           },
         };
       }),
     );
-  }, [validationErrors, execPreview.currentNodeId, execPreview.executedNodeIds, setNodes]);
+  }, [validationErrors, execPreview.currentNodeId, execPreview.executedNodeIds, liveRun, setNodes]);
 
   // Notify parent on changes
   useEffect(() => {

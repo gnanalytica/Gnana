@@ -1,4 +1,6 @@
 import { sql, jobs, eq, type Database } from "@gnana/db";
+import * as Sentry from "@sentry/node";
+import { jobLog } from "./logger.js";
 
 export interface Job {
   id: string;
@@ -39,12 +41,13 @@ export class JobQueue {
         maxAttempts: 3,
       })
       .returning({ id: jobs.id });
+    jobLog.info({ jobId: result[0]!.id, type }, "Job enqueued");
     return result[0]!.id;
   }
 
   /** Start polling for jobs */
   start(intervalMs = 1000) {
-    console.log("Job queue worker started");
+    jobLog.info({ intervalMs }, "Job queue worker started");
     this.polling = setInterval(() => this.processNext(), intervalMs);
   }
 
@@ -86,31 +89,44 @@ export class JobQueue {
       const handler = this.handlers.get(job.type);
 
       if (!handler) {
-        await this.db
-          .update(jobs)
-          .set({
-            status: "failed",
-            error: `No handler for job type: ${job.type}`,
-          })
-          .where(eq(jobs.id, job.id));
+        const msg = `No handler for job type: ${job.type}`;
+        jobLog.error({ jobId: job.id, jobType: job.type }, msg);
+        Sentry.captureMessage(msg, { level: "error", extra: { jobId: job.id, jobType: job.type } });
+        await this.db.update(jobs).set({ status: "failed", error: msg }).where(eq(jobs.id, job.id));
         return;
       }
 
       try {
         await handler(job.payload as Record<string, unknown>);
+        jobLog.info({ jobId: job.id, jobType: job.type }, "Job completed");
         await this.db
           .update(jobs)
           .set({ status: "completed", completedAt: new Date() })
           .where(eq(jobs.id, job.id));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
+        jobLog.error(
+          { err: error, jobId: job.id, jobType: job.type, attempt: (job.attempts ?? 0) + 1 },
+          "Job failed",
+        );
+        Sentry.withScope((scope) => {
+          scope.setTag("job.type", job.type);
+          scope.setContext("job", {
+            id: job.id,
+            type: job.type,
+            attempt: (job.attempts ?? 0) + 1,
+            payload: job.payload,
+          });
+          Sentry.captureException(error);
+        });
         await this.db
           .update(jobs)
           .set({ status: "failed", error: message })
           .where(eq(jobs.id, job.id));
       }
-    } catch {
-      // Silently retry on next interval
+    } catch (error) {
+      jobLog.error({ err: error }, "Job queue poll error");
+      Sentry.captureException(error, { extra: { context: "job_queue_poll" } });
     }
   }
 }

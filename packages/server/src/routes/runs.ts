@@ -3,6 +3,7 @@ import { eq, and, desc, sql, runs, runLogs, usageRecords, type Database } from "
 import type { EventBus } from "@gnana/core";
 import { requireRole } from "../middleware/rbac.js";
 import { planRunLimit } from "../middleware/plan-limits.js";
+import { rateLimit } from "../middleware/rate-limit.js";
 import type { JobQueue } from "../job-queue.js";
 
 export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
@@ -35,52 +36,58 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
     return c.json(result[0]);
   });
 
-  // Trigger a new run — editor+ with monthly run limit check
-  app.post("/", requireRole("editor"), planRunLimit(db), async (c) => {
-    const workspaceId = c.get("workspaceId");
-    const body = await c.req.json();
-    const result = await db
-      .insert(runs)
-      .values({
-        agentId: body.agentId,
-        status: "queued",
-        triggerType: body.triggerType ?? "manual",
-        triggerData: body.payload ?? {},
-        workspaceId,
-      })
-      .returning();
-    const run = result[0]!;
+  // Trigger a new run — editor+ with monthly run limit check (10 req/min)
+  app.post(
+    "/",
+    requireRole("editor"),
+    rateLimit({ windowMs: 60_000, maxRequests: 10 }),
+    planRunLimit(db),
+    async (c) => {
+      const workspaceId = c.get("workspaceId");
+      const body = await c.req.json();
+      const result = await db
+        .insert(runs)
+        .values({
+          agentId: body.agentId,
+          status: "queued",
+          triggerType: body.triggerType ?? "manual",
+          triggerData: body.payload ?? {},
+          workspaceId,
+        })
+        .returning();
+      const run = result[0]!;
 
-    // Track usage — increment the monthly run counter
-    const period = new Date().toISOString().slice(0, 7); // "2026-03"
-    await db
-      .insert(usageRecords)
-      .values({
-        workspaceId,
-        period,
-        runsCount: 1,
-        tokensUsed: 0,
-      })
-      .onConflictDoUpdate({
-        target: [usageRecords.workspaceId, usageRecords.period],
-        set: {
-          runsCount: sql`${usageRecords.runsCount} + 1`,
-          updatedAt: new Date(),
-        },
-      });
+      // Track usage — increment the monthly run counter
+      const period = new Date().toISOString().slice(0, 7); // "2026-03"
+      await db
+        .insert(usageRecords)
+        .values({
+          workspaceId,
+          period,
+          runsCount: 1,
+          tokensUsed: 0,
+        })
+        .onConflictDoUpdate({
+          target: [usageRecords.workspaceId, usageRecords.period],
+          set: {
+            runsCount: sql`${usageRecords.runsCount} + 1`,
+            updatedAt: new Date(),
+          },
+        });
 
-    // Enqueue background job if queue is available, otherwise just emit event
-    if (queue) {
-      await queue.enqueue("run:execute", {
-        runId: run.id,
-        agentId: run.agentId,
-        workspaceId,
-      });
-    }
+      // Enqueue background job if queue is available, otherwise just emit event
+      if (queue) {
+        await queue.enqueue("run:execute", {
+          runId: run.id,
+          agentId: run.agentId,
+          workspaceId,
+        });
+      }
 
-    await events.emit("run:queued", { runId: run.id, agentId: run.agentId });
-    return c.json(run, 201);
-  });
+      await events.emit("run:queued", { runId: run.id, agentId: run.agentId });
+      return c.json(run, 201);
+    },
+  );
 
   // Approve run — editor+
   app.post("/:id/approve", requireRole("editor"), async (c) => {

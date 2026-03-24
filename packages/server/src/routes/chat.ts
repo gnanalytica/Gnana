@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { eq, providers, type Database } from "@gnana/db";
+import { rateLimit } from "../middleware/rate-limit.js";
 
 export function chatRoutes(db: Database) {
   const app = new Hono();
 
-  // POST /api/chat/pipeline — AI-powered pipeline generation/modification
-  app.post("/pipeline", async (c) => {
+  // POST /api/chat/pipeline — AI-powered pipeline generation/modification (20 req/min)
+  app.post("/pipeline", rateLimit({ windowMs: 60_000, maxRequests: 20 }), async (c) => {
     const workspaceId = c.get("workspaceId") as string;
     const { message, pipeline, history } = await c.req.json();
 

@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { eq, and, workspaces, workspaceMembers, type Database } from "@gnana/db";
+import * as Sentry from "@sentry/node";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -32,6 +33,8 @@ export function workspaceMiddleware(db: Database) {
 
       c.set("workspaceId", requestedWorkspaceId);
       c.set("workspaceRole", membership[0].role);
+      Sentry.setTag("workspace.id", requestedWorkspaceId);
+      Sentry.setTag("workspace.role", membership[0].role);
     } else {
       // Fall back to personal workspace
       const personalWs = await db
@@ -46,6 +49,8 @@ export function workspaceMiddleware(db: Database) {
 
       c.set("workspaceId", personalWs[0].id);
       c.set("workspaceRole", "owner");
+      Sentry.setTag("workspace.id", personalWs[0].id);
+      Sentry.setTag("workspace.role", "owner");
     }
 
     await next();
