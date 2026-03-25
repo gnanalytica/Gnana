@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { MCPConfigForm, type MCPConfigFormData } from "@/components/connectors/mcp-config-form";
 
 export interface InstallDialogApp {
   id: string;
@@ -63,8 +64,11 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
   const [pgConnectionString, setPgConnectionString] = useState("");
 
   // MCP fields
-  const [mcpTransport, setMcpTransport] = useState("http");
-  const [mcpUrl, setMcpUrl] = useState("");
+  const [mcpConfig, setMcpConfig] = useState<MCPConfigFormData>({
+    serverName: "",
+    transport: "http",
+    url: "",
+  });
 
   const resetForm = () => {
     setSuccess(false);
@@ -80,8 +84,7 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
     setHttpUsername("");
     setHttpPassword("");
     setPgConnectionString("");
-    setMcpTransport("http");
-    setMcpUrl("");
+    setMcpConfig({ serverName: "", transport: "http", url: "" });
   };
 
   const handleClose = () => {
@@ -128,12 +131,16 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
       case "mcp-server":
         return {
           type: "mcp",
-          name: "MCP Server",
+          name: mcpConfig.serverName || "MCP Server",
           authType: "mcp",
           credentials: {},
           config: {
-            transport: mcpTransport,
-            url: mcpUrl,
+            transport: mcpConfig.transport,
+            ...(mcpConfig.transport === "http" ? { url: mcpConfig.url } : {}),
+            ...(mcpConfig.transport === "stdio"
+              ? { command: mcpConfig.command, args: mcpConfig.args }
+              : {}),
+            ...(mcpConfig.env ? { env: mcpConfig.env } : {}),
           },
         };
       default:
@@ -190,7 +197,12 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
       case "postgres":
         return pgConnectionString.trim().length > 0;
       case "mcp-server":
-        return mcpUrl.trim().length > 0;
+        return (
+          mcpConfig.serverName.trim().length > 0 &&
+          (mcpConfig.transport === "http"
+            ? (mcpConfig.url ?? "").trim().length > 0
+            : (mcpConfig.command ?? "").trim().length > 0)
+        );
       default:
         return false;
     }
@@ -376,33 +388,7 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
 
             {/* MCP Server Fields */}
             {app.id === "mcp-server" && (
-              <>
-                <div className="space-y-2">
-                  <Label>Transport</Label>
-                  <Select value={mcpTransport} onValueChange={setMcpTransport}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="http">HTTP</SelectItem>
-                      <SelectItem value="stdio">Stdio</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mcp-url">{mcpTransport === "http" ? "URL" : "Command"}</Label>
-                  <Input
-                    id="mcp-url"
-                    placeholder={
-                      mcpTransport === "http"
-                        ? "https://mcp-server.example.com"
-                        : "npx @company/mcp-server"
-                    }
-                    value={mcpUrl}
-                    onChange={(e) => setMcpUrl(e.target.value)}
-                  />
-                </div>
-              </>
+              <MCPConfigForm inline onChange={setMcpConfig} />
             )}
 
             <Button

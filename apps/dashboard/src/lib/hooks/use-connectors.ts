@@ -42,6 +42,10 @@ export function useConnectors() {
     return result as { success: boolean; message?: string };
   };
 
+  const refreshTools = async (id: string) => {
+    return api.connectors.refreshTools(id);
+  };
+
   return {
     connectors,
     isLoading,
@@ -50,6 +54,7 @@ export function useConnectors() {
     createConnector,
     deleteConnector,
     testConnector,
+    refreshTools,
   };
 }
 
