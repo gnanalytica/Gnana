@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { api } from "@/lib/api";
 
 export interface Workspace {
   id: string;
@@ -10,22 +11,48 @@ export interface Workspace {
   role: string;
 }
 
-// For now, return mock data since the API needs auth wired up
-// This will be replaced with actual API calls later
 export function useWorkspaces() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [current, setCurrent] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // TODO: Replace with actual API call when auth is wired
-    const mockWorkspaces: Workspace[] = [
-      { id: "personal", name: "Personal", slug: "personal", type: "personal", role: "owner" },
-    ];
-    setWorkspaces(mockWorkspaces);
-    setCurrent(mockWorkspaces[0] ?? null);
-    setLoading(false);
+  const fetchWorkspaces = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.fetch("/api/workspaces");
+      const wsList = (await res.json()) as Workspace[];
+      setWorkspaces(wsList);
+      // Restore previously selected workspace from localStorage
+      const savedId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("gnana-current-workspace")
+          : null;
+      const match = savedId ? wsList.find((w) => w.id === savedId) : null;
+      setCurrent(match ?? wsList[0] ?? null);
+    } catch {
+      setWorkspaces([]);
+      setCurrent(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { workspaces, current, setCurrent, loading };
+  useEffect(() => {
+    fetchWorkspaces();
+  }, [fetchWorkspaces]);
+
+  const switchWorkspace = useCallback((ws: Workspace) => {
+    setCurrent(ws);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gnana-current-workspace", ws.id);
+    }
+  }, []);
+
+  return {
+    workspaces,
+    current,
+    setCurrent: switchWorkspace,
+    loading,
+    refetch: fetchWorkspaces,
+  };
 }

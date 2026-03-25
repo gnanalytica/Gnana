@@ -211,6 +211,8 @@ export interface PipelineCanvasProps {
   onChange?: (nodes: NodeSpec[], edges: EdgeSpec[]) => void;
   /** Live run overlay state — lights up nodes during execution */
   liveRun?: LiveRunOverlay | null;
+  /** Called when a node is clicked (with node ID) or canvas background is clicked (null) */
+  onNodeSelect?: (nodeId: string | null) => void;
 }
 
 function PipelineCanvasInner({
@@ -218,6 +220,7 @@ function PipelineCanvasInner({
   initialEdges,
   onChange,
   liveRun,
+  onNodeSelect,
 }: PipelineCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(
     initialNodes ? specToNodes(initialNodes) : createDefaultNodes(),
@@ -365,10 +368,18 @@ function PipelineCanvasInner({
     [setEdges, nodes],
   );
 
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
-    setDrawerOpen(true);
-  }, []);
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      setSelectedNode(node);
+      setDrawerOpen(true);
+      onNodeSelect?.(node.id);
+    },
+    [onNodeSelect],
+  );
+
+  const onPaneClick = useCallback(() => {
+    onNodeSelect?.(null);
+  }, [onNodeSelect]);
 
   const onSelectionChange = useCallback(({ nodes: selected }: OnSelectionChangeParams) => {
     setSelectedNodes(selected);
@@ -669,6 +680,7 @@ function PipelineCanvasInner({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         onInit={setRfInstance}
         onDragOver={onDragOver}
         onDrop={onDrop}

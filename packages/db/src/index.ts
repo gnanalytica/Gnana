@@ -25,6 +25,10 @@ export {
 export type Database = ReturnType<typeof createDatabase>;
 
 export function createDatabase(connectionString: string) {
-  const client = postgres(connectionString);
+  const client = postgres(connectionString, {
+    max: 20,
+    idle_timeout: 30,
+    connect_timeout: 10,
+  });
   return drizzle(client, { schema });
 }

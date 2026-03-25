@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { PipelineCanvas } from "./pipeline-canvas";
-import { CanvasChatPanel } from "./canvas-chat-panel";
+import { CanvasChatPanel, type CanvasChatPanelRef } from "./canvas-chat-panel";
 import { VersionHistoryPanel } from "./version-history-panel";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +22,7 @@ import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { useAutoSave } from "@/lib/canvas/use-auto-save";
 import { applyDagreLayout } from "@/lib/canvas/auto-layout";
 import { useLiveRun, type LiveRunLog } from "@/lib/canvas/use-live-run";
+import { computeCanvasDiff } from "@/lib/canvas/use-canvas-events";
 import { api } from "@/lib/api";
 import type { NodeSpec, EdgeSpec } from "@/types/pipeline";
 import type { Node, Edge } from "@xyflow/react";
@@ -32,6 +33,9 @@ interface SplitCanvasProps {
   agentId?: string;
 }
 
+/** LocalStorage key for AI assistant mode preference */
+const AI_ASSISTANT_MODE_KEY = "gnana:ai-assistant-mode";
+
 export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvasProps) {
   const [chatOpen, setChatOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -41,6 +45,43 @@ export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvas
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // Focused node state
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+
+  // AI assistant mode (persisted in localStorage)
+  const [aiAssistantMode, setAiAssistantMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(AI_ASSISTANT_MODE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleAssistantMode = useCallback(() => {
+    setAiAssistantMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(AI_ASSISTANT_MODE_KEY, String(next));
+      } catch {
+        // Ignore storage errors
+      }
+      return next;
+    });
+  }, []);
+
+  // Ref to the chat panel for sending canvas events
+  const chatPanelRef = useRef<CanvasChatPanelRef>(null);
+
+  // Previous nodes/edges for diffing (deep cloned)
+  const prevNodesRef = useRef<NodeSpec[]>(JSON.parse(JSON.stringify(initialNodes ?? [])));
+  const prevEdgesRef = useRef<EdgeSpec[]>(JSON.parse(JSON.stringify(initialEdges ?? [])));
+
+  // Debounce timer for canvas events
+  const canvasEventTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Rate limit: last time AI suggestion was sent
+  const lastAiSuggestionTimeRef = useRef<number>(0);
 
   // Live run state
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
@@ -76,11 +117,58 @@ export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvas
     enabled: !!agentId,
   });
 
-  const handleCanvasChange = useCallback((newNodes: NodeSpec[], newEdges: EdgeSpec[]) => {
-    nodesRef.current = newNodes;
-    edgesRef.current = newEdges;
-    setNodes(newNodes);
-    setEdges(newEdges);
+  const handleNodeSelect = useCallback((nodeId: string | null) => {
+    setFocusedNodeId(nodeId);
+  }, []);
+
+  const handleCanvasChange = useCallback(
+    (newNodes: NodeSpec[], newEdges: EdgeSpec[]) => {
+      nodesRef.current = newNodes;
+      edgesRef.current = newEdges;
+      setNodes(newNodes);
+      setEdges(newEdges);
+
+      // Canvas event emission: only when assistant mode is ON
+      if (aiAssistantMode && chatPanelRef.current) {
+        // Clear previous debounce timer
+        if (canvasEventTimerRef.current) {
+          clearTimeout(canvasEventTimerRef.current);
+        }
+
+        // Debounce by 1 second
+        canvasEventTimerRef.current = setTimeout(() => {
+          const events = computeCanvasDiff(
+            prevNodesRef.current,
+            newNodes,
+            prevEdgesRef.current,
+            newEdges,
+          );
+
+          if (events.length > 0) {
+            // Rate limit: max 1 AI suggestion per 10 seconds
+            const now = Date.now();
+            if (now - lastAiSuggestionTimeRef.current >= 10000) {
+              lastAiSuggestionTimeRef.current = now;
+              chatPanelRef.current?.onCanvasEvent(events);
+            }
+          }
+
+          // Update prev refs (deep clone)
+          prevNodesRef.current = JSON.parse(JSON.stringify(newNodes));
+          prevEdgesRef.current = JSON.parse(JSON.stringify(newEdges));
+        }, 1000);
+      }
+    },
+    [aiAssistantMode],
+  );
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (canvasEventTimerRef.current) {
+        clearTimeout(canvasEventTimerRef.current);
+      }
+    };
   }, []);
 
   const handleChatPipelineUpdate = useCallback((newNodes: NodeSpec[], newEdges: EdgeSpec[]) => {
@@ -109,6 +197,9 @@ export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvas
     setEdges(newEdges);
     nodesRef.current = layoutedSpecs;
     edgesRef.current = newEdges;
+    // Update prev refs so we don't trigger diff for AI-applied changes
+    prevNodesRef.current = JSON.parse(JSON.stringify(layoutedSpecs));
+    prevEdgesRef.current = JSON.parse(JSON.stringify(newEdges));
     setCanvasKey((k) => k + 1);
   }, []);
 
@@ -117,6 +208,8 @@ export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvas
     setEdges(versionEdges);
     nodesRef.current = versionNodes;
     edgesRef.current = versionEdges;
+    prevNodesRef.current = JSON.parse(JSON.stringify(versionNodes));
+    prevEdgesRef.current = JSON.parse(JSON.stringify(versionEdges));
     setCanvasKey((k) => k + 1);
     setHistoryOpen(false);
   }, []);
@@ -259,15 +352,20 @@ export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvas
               initialEdges={edges.length > 0 ? edges : undefined}
               onChange={handleCanvasChange}
               liveRun={liveRunOverlay}
+              onNodeSelect={handleNodeSelect}
             />
             <RunLogPanel />
           </TabsContent>
           <TabsContent value="chat" className="flex-1 m-0">
             <CanvasChatPanel
+              ref={chatPanelRef}
               onClose={() => {}}
               currentNodes={nodesRef.current}
               currentEdges={edgesRef.current}
               onPipelineUpdate={handleChatPipelineUpdate}
+              focusedNodeId={focusedNodeId}
+              aiAssistantMode={aiAssistantMode}
+              onToggleAssistantMode={toggleAssistantMode}
             />
           </TabsContent>
         </Tabs>
@@ -334,6 +432,7 @@ export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvas
               initialEdges={edges.length > 0 ? edges : undefined}
               onChange={handleCanvasChange}
               liveRun={liveRunOverlay}
+              onNodeSelect={handleNodeSelect}
             />
             {/* Floating log panel */}
             <RunLogPanel />
@@ -357,10 +456,14 @@ export function SplitCanvas({ initialNodes, initialEdges, agentId }: SplitCanvas
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={30} minSize={20}>
               <CanvasChatPanel
+                ref={chatPanelRef}
                 onClose={() => setChatOpen(false)}
                 currentNodes={nodesRef.current}
                 currentEdges={edgesRef.current}
                 onPipelineUpdate={handleChatPipelineUpdate}
+                focusedNodeId={focusedNodeId}
+                aiAssistantMode={aiAssistantMode}
+                onToggleAssistantMode={toggleAssistantMode}
               />
             </ResizablePanel>
           </>

@@ -2,6 +2,8 @@ import { createMiddleware } from "hono/factory";
 import { serverLog } from "../logger.js";
 
 export const requestLogger = createMiddleware(async (c, next) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  c.header("x-request-id", requestId);
   const start = Date.now();
   await next();
   const duration = Date.now() - start;
@@ -14,6 +16,7 @@ export const requestLogger = createMiddleware(async (c, next) => {
         : serverLog.info.bind(serverLog);
   log(
     {
+      requestId,
       method: c.req.method,
       path: c.req.path,
       status,

@@ -9,6 +9,7 @@ import {
   bigint,
   primaryKey,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 
 // ---- Workspaces (multi-tenancy) ----
@@ -41,7 +42,9 @@ export const agents = pgTable("agents", {
   enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("agents_workspace_id_idx").on(table.workspaceId),
+]);
 
 // ---- Runs ----
 
@@ -62,7 +65,10 @@ export const runs = pgTable("runs", {
   outputTokens: integer("output_tokens").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("runs_workspace_id_idx").on(table.workspaceId),
+  index("runs_agent_id_idx").on(table.agentId),
+]);
 
 // ---- Run Logs ----
 
@@ -76,7 +82,9 @@ export const runLogs = pgTable("run_logs", {
   message: text("message").notNull(),
   data: jsonb("data"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("run_logs_run_id_idx").on(table.runId),
+]);
 
 // ---- Connectors ----
 
@@ -91,7 +99,9 @@ export const connectors = pgTable("connectors", {
   enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("connectors_workspace_id_idx").on(table.workspaceId),
+]);
 
 // ---- Connector Tools ----
 
@@ -119,7 +129,9 @@ export const providers = pgTable("providers", {
   enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("providers_workspace_id_idx").on(table.workspaceId),
+]);
 
 // ---- API Keys ----
 
@@ -133,7 +145,10 @@ export const apiKeys = pgTable("api_keys", {
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("api_keys_workspace_id_idx").on(table.workspaceId),
+  index("api_keys_key_hash_idx").on(table.keyHash),
+]);
 
 // ---- Auth.js Users ----
 
@@ -210,7 +225,10 @@ export const workspaceMembers = pgTable(
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
-  (table) => [unique().on(table.workspaceId, table.userId)],
+  (table) => [
+    unique().on(table.workspaceId, table.userId),
+    index("workspace_members_user_id_idx").on(table.userId),
+  ],
 );
 
 // ---- Workspace Invites ----
@@ -267,6 +285,7 @@ export const pipelineVersions = pgTable("pipeline_versions", {
 
 export const jobs = pgTable("jobs", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   type: text("type").notNull(),
   payload: jsonb("payload").notNull().default("{}"),
   status: text("status").notNull().default("pending"),
@@ -276,7 +295,10 @@ export const jobs = pgTable("jobs", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
-});
+}, (table) => [
+  index("jobs_status_idx").on(table.status),
+  index("jobs_workspace_id_idx").on(table.workspaceId),
+]);
 
 // ---- Password Reset Tokens ----
 
@@ -304,5 +326,8 @@ export const usageRecords = pgTable(
     tokensUsed: bigint("tokens_used", { mode: "number" }).notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
-  (table) => [unique().on(table.workspaceId, table.period)],
+  (table) => [
+    unique().on(table.workspaceId, table.period),
+    index("usage_records_workspace_id_idx").on(table.workspaceId),
+  ],
 );

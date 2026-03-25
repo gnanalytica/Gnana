@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/node";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
-import { createDatabase, agents, runs, eq, type Database } from "@gnana/db";
+import { createDatabase, agents, runs, eq, sql, type Database } from "@gnana/db";
 import { createEventBus, type EventBus, type LLMProvider } from "@gnana/core";
 import type { RouterConfig } from "@gnana/core";
 import { agentRoutes } from "./routes/agents.js";
@@ -135,7 +135,12 @@ function createApp(db: Database, events: EventBus, queue: JobQueue) {
   const app = new Hono();
 
   // Middleware
-  app.use("*", cors());
+  app.use("*", cors({
+    origin: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(",").map(s => s.trim())
+      : "*",
+    credentials: true,
+  }));
   app.use("*", requestLogger);
 
   // Public routes (no auth required)
@@ -148,7 +153,14 @@ function createApp(db: Database, events: EventBus, queue: JobQueue) {
     }),
   );
 
-  app.get("/health", (c) => c.json({ status: "ok" }));
+  app.get("/health", async (c) => {
+    try {
+      await db.execute(sql`SELECT 1`);
+      return c.json({ status: "ok", db: "connected" });
+    } catch {
+      return c.json({ status: "degraded", db: "disconnected" }, 503);
+    }
+  });
 
   // Public invite routes — view invite details without auth
   app.route("/api/invites", publicInviteRoutes(db));
