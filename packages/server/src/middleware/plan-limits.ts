@@ -75,7 +75,7 @@ export function planLimit(
     const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(table)
-      .where(sql`workspace_id = ${workspaceId}`);
+      .where(eq(table.workspaceId, workspaceId));
 
     const current = countResult[0]?.count ?? 0;
 

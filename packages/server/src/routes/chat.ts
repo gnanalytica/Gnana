@@ -188,37 +188,42 @@ function buildSystemPrompt(
   workspaceProviders: ProviderRow[],
   workspaceConnectors: ConnectorRow[],
 ): string {
-  const providerList = workspaceProviders.length > 0
-    ? workspaceProviders
-        .map((p) => `- ${p.name} (${p.type})${p.enabled ? "" : " [disabled]"}`)
-        .join("\n")
-    : "No providers configured yet.";
+  const providerList =
+    workspaceProviders.length > 0
+      ? workspaceProviders
+          .map((p) => `- ${p.name} (${p.type})${p.enabled ? "" : " [disabled]"}`)
+          .join("\n")
+      : "No providers configured yet.";
 
-  const connectorList = workspaceConnectors.length > 0
-    ? workspaceConnectors
-        .map((c) => `- ${c.name} (${c.type})${c.enabled ? "" : " [disabled]"}`)
-        .join("\n")
-    : "No connectors configured yet.";
+  const connectorList =
+    workspaceConnectors.length > 0
+      ? workspaceConnectors
+          .map((c) => `- ${c.name} (${c.type})${c.enabled ? "" : " [disabled]"}`)
+          .join("\n")
+      : "No connectors configured yet.";
 
-  const focusedNodeContext = focusedNodeId && pipeline
-    ? (() => {
-        const node = pipeline.nodes.find((n) => n.id === focusedNodeId);
-        if (!node) return "";
-        return `\n## Focused Node\nThe user is currently focused on this node:\n\`\`\`json\n${JSON.stringify(node, null, 2)}\n\`\`\`\nPrioritize changes related to this node when the user's request is ambiguous.\n`;
-      })()
-    : "";
+  const focusedNodeContext =
+    focusedNodeId && pipeline
+      ? (() => {
+          const node = pipeline.nodes.find((n) => n.id === focusedNodeId);
+          if (!node) return "";
+          return `\n## Focused Node\nThe user is currently focused on this node:\n\`\`\`json\n${JSON.stringify(node, null, 2)}\n\`\`\`\nPrioritize changes related to this node when the user's request is ambiguous.\n`;
+        })()
+      : "";
 
   const pipelineContext = pipeline
     ? `\`\`\`json\n${JSON.stringify(pipeline, null, 2)}\n\`\`\``
     : "Empty — no pipeline created yet.";
 
-  const modeInstructions = mode === "design"
-    ? `## Mode: Design
+  const modeInstructions =
+    mode === "design"
+      ? `## Mode: Design
 You are helping the user design a NEW pipeline from scratch.
 
-${forceGenerate
-  ? `IMPORTANT: The user has requested you generate a pipeline NOW. Do NOT ask any follow-up questions. Generate your best pipeline based on what you know.`
-  : `If the user's request is clear enough to generate a pipeline, generate one immediately.
+${
+  forceGenerate
+    ? `IMPORTANT: The user has requested you generate a pipeline NOW. Do NOT ask any follow-up questions. Generate your best pipeline based on what you know.`
+    : `If the user's request is clear enough to generate a pipeline, generate one immediately.
 If the request is too vague or ambiguous, ask exactly ONE short follow-up question to clarify. Do not ask multiple questions.`
 }
 
@@ -231,7 +236,7 @@ When generating a pipeline:
 - Give each edge a unique id in the format "edge-sourceId-targetId"
 - Connect all nodes with edges so the graph is fully connected
 `
-    : `## Mode: Modify
+      : `## Mode: Modify
 You are helping the user modify an EXISTING pipeline.
 
 When applying modifications:
@@ -350,14 +355,21 @@ async function resolveProvider(
 // ---------------------------------------------------------------------------
 
 async function fetchWorkspaceProviders(db: Database, workspaceId: string): Promise<ProviderRow[]> {
-  return db.select().from(providers).where(eq(providers.workspaceId, workspaceId)) as Promise<ProviderRow[]>;
+  return db.select().from(providers).where(eq(providers.workspaceId, workspaceId)) as Promise<
+    ProviderRow[]
+  >;
 }
 
-async function fetchWorkspaceConnectors(db: Database, workspaceId: string): Promise<ConnectorRow[]> {
+async function fetchWorkspaceConnectors(
+  db: Database,
+  workspaceId: string,
+): Promise<ConnectorRow[]> {
   return db
     .select()
     .from(connectors)
-    .where(and(eq(connectors.workspaceId, workspaceId), eq(connectors.enabled, true))) as Promise<ConnectorRow[]>;
+    .where(and(eq(connectors.workspaceId, workspaceId), eq(connectors.enabled, true))) as Promise<
+    ConnectorRow[]
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -658,22 +670,16 @@ export function chatRoutes(db: Database) {
           let fullText = "";
           let hadError = false;
 
-          await callAnthropicStreaming(
-            resolvedProvider.apiKey,
-            systemPrompt,
-            message,
-            history,
-            {
-              onText: async (text) => {
-                fullText += text;
-                await sendEvent(sseData({ type: "text", content: text }));
-              },
-              onError: async (error) => {
-                hadError = true;
-                await sendEvent(sseData({ type: "error", message: error }));
-              },
+          await callAnthropicStreaming(resolvedProvider.apiKey, systemPrompt, message, history, {
+            onText: async (text) => {
+              fullText += text;
+              await sendEvent(sseData({ type: "text", content: text }));
             },
-          );
+            onError: async (error) => {
+              hadError = true;
+              await sendEvent(sseData({ type: "error", message: error }));
+            },
+          });
 
           // After streaming completes, parse full response and emit structured events
           if (!hadError && fullText.trim()) {

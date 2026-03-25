@@ -97,9 +97,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
               accumulatedText += chunk.content;
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === streamMsgId
-                    ? { ...m, content: m.content + chunk.content }
-                    : m,
+                  m.id === streamMsgId ? { ...m, content: m.content + chunk.content } : m,
                 ),
               );
               setQuestionCount((prev) => prev + 1);
@@ -111,9 +109,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
 
               setGeneratedSpec(spec);
               setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === streamMsgId ? { ...m, pipelineSpec: spec! } : m,
-                ),
+                prev.map((m) => (m.id === streamMsgId ? { ...m, pipelineSpec: spec! } : m)),
               );
               setSuggestions(responseSuggestions);
               break;
@@ -146,11 +142,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
         // Mark error messages for rendering
         if (hasError) {
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === streamMsgId
-                ? { ...m, id: `error-${streamMsgId}` }
-                : m,
-            ),
+            prev.map((m) => (m.id === streamMsgId ? { ...m, id: `error-${streamMsgId}` } : m)),
           );
         }
       } catch {
@@ -160,8 +152,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
               ? {
                   ...m,
                   id: `error-${streamMsgId}`,
-                  content:
-                    "Something went wrong while generating your pipeline. Please try again.",
+                  content: "Something went wrong while generating your pipeline. Please try again.",
                 }
               : m,
           ),
@@ -191,10 +182,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
         return prev;
       });
       // Remove last assistant entry from history
-      const lastAssistantIdx = findLastIndex(
-        historyRef.current,
-        (m) => m.role === "assistant",
-      );
+      const lastAssistantIdx = findLastIndex(historyRef.current, (m) => m.role === "assistant");
       if (lastAssistantIdx >= 0) {
         historyRef.current = historyRef.current.slice(0, lastAssistantIdx);
       }
@@ -317,9 +305,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
             {/* Progress indicator when questions are accumulating */}
             {progressLabel && isGenerating && messages[messages.length - 1]?.content !== "" && (
               <div className="flex justify-center">
-                <span className="text-xs text-muted-foreground animate-pulse">
-                  {progressLabel}
-                </span>
+                <span className="text-xs text-muted-foreground animate-pulse">{progressLabel}</span>
               </div>
             )}
 

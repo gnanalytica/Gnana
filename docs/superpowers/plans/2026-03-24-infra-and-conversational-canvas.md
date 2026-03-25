@@ -17,6 +17,7 @@
 ### Task A1: DB Indexes + Connection Pool + Jobs WorkspaceId
 
 **Files:**
+
 - Modify: `packages/db/src/index.ts` (connection pool config)
 - Modify: `packages/db/src/schema.ts` (add indexes, add workspaceId to jobs)
 - Create: new migration via `pnpm --filter @gnana/db db:generate`
@@ -24,6 +25,7 @@
 **Steps:**
 
 - [ ] Add connection pool config to `createDatabase()`:
+
   ```typescript
   export function createDatabase(connectionString: string) {
     const client = postgres(connectionString, {
@@ -36,6 +38,7 @@
   ```
 
 - [ ] Add `workspaceId` to jobs table in schema.ts:
+
   ```typescript
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   ```
@@ -59,12 +62,14 @@
 ### Task A2: Graceful Shutdown + Env Validation + Deep Health Check
 
 **Files:**
+
 - Modify: `packages/server/src/start.ts` (shutdown handlers, env validation)
 - Modify: `packages/server/src/index.ts` (health check with DB ping)
 
 **Steps:**
 
 - [ ] Add env validation at top of start.ts before server creation:
+
   ```typescript
   const requiredEnv = ["DATABASE_URL", "AUTH_SECRET"];
   for (const key of requiredEnv) {
@@ -76,6 +81,7 @@
   ```
 
 - [ ] Add graceful shutdown handlers in start.ts:
+
   ```typescript
   function shutdown(signal: string) {
     console.log(`${signal} received, shutting down gracefully...`);
@@ -95,6 +101,7 @@
   ```
 
 - [ ] Enhance health check in index.ts to ping DB:
+
   ```typescript
   app.get("/health", async (c) => {
     try {
@@ -105,6 +112,7 @@
     }
   });
   ```
+
   Note: `db` must be passed into `createApp()` — it already is.
 
 - [ ] Run: `pnpm --filter @gnana/server typecheck && pnpm --filter @gnana/server build`
@@ -114,23 +122,28 @@
 ### Task A3: CORS Lockdown + Request Correlation IDs
 
 **Files:**
+
 - Modify: `packages/server/src/index.ts` (CORS config)
 - Modify: `packages/server/src/middleware/request-logger.ts` (add requestId)
 
 **Steps:**
 
 - [ ] Configure CORS with allowed origins:
+
   ```typescript
-  app.use("*", cors({
-    origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(",")
-      : "*",
-    credentials: true,
-  }));
+  app.use(
+    "*",
+    cors({
+      origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",") : "*",
+      credentials: true,
+    }),
+  );
   ```
+
   Add `CORS_ORIGINS` to .env.example.
 
 - [ ] Add request ID generation and logging in request-logger.ts:
+
   ```typescript
   export const requestLogger = createMiddleware(async (c, next) => {
     const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
@@ -139,9 +152,22 @@
     await next();
     const duration = Date.now() - start;
     const status = c.res.status;
-    const log = status >= 500 ? serverLog.error.bind(serverLog) : status >= 400 ? serverLog.warn.bind(serverLog) : serverLog.info.bind(serverLog);
+    const log =
+      status >= 500
+        ? serverLog.error.bind(serverLog)
+        : status >= 400
+          ? serverLog.warn.bind(serverLog)
+          : serverLog.info.bind(serverLog);
     log(
-      { requestId, method: c.req.method, path: c.req.path, status, duration, userId: c.get("userId" as never) ?? undefined, workspaceId: c.get("workspaceId" as never) ?? undefined },
+      {
+        requestId,
+        method: c.req.method,
+        path: c.req.path,
+        status,
+        duration,
+        userId: c.get("userId" as never) ?? undefined,
+        workspaceId: c.get("workspaceId" as never) ?? undefined,
+      },
       `${c.req.method} ${c.req.path} ${status} ${duration}ms`,
     );
   });
@@ -154,11 +180,13 @@
 ### Task A4: Wire useWorkspaces Hook to Real API
 
 **Files:**
+
 - Modify: `apps/dashboard/src/lib/hooks/use-workspaces.ts`
 
 **Steps:**
 
 - [ ] Replace mock data with real API call:
+
   ```typescript
   "use client";
   import { useState, useEffect, useCallback } from "react";
@@ -192,7 +220,9 @@
       }
     }, []);
 
-    useEffect(() => { fetchWorkspaces(); }, [fetchWorkspaces]);
+    useEffect(() => {
+      fetchWorkspaces();
+    }, [fetchWorkspaces]);
 
     const switchWorkspace = useCallback((ws: Workspace) => {
       setCurrent(ws);
@@ -210,6 +240,7 @@
 ### Task B1: Backend Chat Endpoint — SSE Streaming + Enhanced Prompt
 
 **Files:**
+
 - Rewrite: `packages/server/src/routes/chat.ts`
 - Modify: `packages/server/src/index.ts` (pass connectors to chat routes if needed)
 
@@ -239,6 +270,7 @@
 ### Task B2: Frontend SSE Consumer (pipeline-ai-stream.ts rewrite)
 
 **Files:**
+
 - Rewrite: `apps/dashboard/src/lib/pipeline-ai-stream.ts`
 - Modify: `apps/dashboard/src/lib/pipeline-ai.ts` (keep as fallback only)
 - Modify: `apps/dashboard/src/app/api/chat/route.ts` (streaming passthrough)
@@ -255,6 +287,7 @@
 ### Task B3: Canvas Chat Panel + Split Canvas Enhancements
 
 **Files:**
+
 - Modify: `apps/dashboard/src/components/canvas/canvas-chat-panel.tsx`
 - Modify: `apps/dashboard/src/components/canvas/split-canvas.tsx`
 - Modify: `apps/dashboard/src/components/canvas/pipeline-canvas.tsx` (add onNodeSelect)
@@ -283,6 +316,7 @@
 ### Task B4: Chat Onboarding Enhancements
 
 **Files:**
+
 - Modify: `apps/dashboard/src/components/agents/chat-onboarding.tsx`
 
 **Steps:**

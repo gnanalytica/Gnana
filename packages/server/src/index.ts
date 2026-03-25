@@ -135,12 +135,15 @@ function createApp(db: Database, events: EventBus, queue: JobQueue) {
   const app = new Hono();
 
   // Middleware
-  app.use("*", cors({
-    origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(",").map(s => s.trim())
-      : "*",
-    credentials: true,
-  }));
+  app.use(
+    "*",
+    cors({
+      origin: process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
+        : "*",
+      credentials: true,
+    }),
+  );
   app.use("*", requestLogger);
 
   // Public routes (no auth required)

@@ -42,11 +42,7 @@ class DashboardClient extends GnanaClient {
       return await super.fetch(path, init);
     } catch (err) {
       // Only attempt refresh on client-side 401 errors
-      if (
-        err instanceof GnanaError &&
-        err.status === 401 &&
-        typeof window !== "undefined"
-      ) {
+      if (err instanceof GnanaError && err.status === 401 && typeof window !== "undefined") {
         // Re-fetch the session to get a freshly-minted JWT
         const freshToken = await fetchAccessToken();
         if (freshToken) {
@@ -57,10 +53,7 @@ class DashboardClient extends GnanaClient {
             ...(init?.headers as Record<string, string>),
           };
 
-          const response = await globalThis.fetch(
-            `${this.baseUrl}${path}`,
-            { ...init, headers },
-          );
+          const response = await globalThis.fetch(`${this.baseUrl}${path}`, { ...init, headers });
 
           if (!response.ok) {
             const body = await response.text().catch(() => "");

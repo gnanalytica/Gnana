@@ -92,7 +92,9 @@ export function decrypt(encryptedValue: string): string {
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch {
-    encryptionLog.error("Failed to decrypt value — returning empty string to avoid leaking ciphertext");
+    encryptionLog.error(
+      "Failed to decrypt value — returning empty string to avoid leaking ciphertext",
+    );
     return "";
   }
 }

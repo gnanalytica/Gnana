@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useImperativeHandle,
-  forwardRef,
-} from "react";
+import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -69,9 +62,7 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
     const historyRef = useRef<Array<{ role: "user" | "assistant"; content: string }>>([]);
 
     // Find focused node label for display
-    const focusedNode = focusedNodeId
-      ? currentNodes.find((n) => n.id === focusedNodeId)
-      : null;
+    const focusedNode = focusedNodeId ? currentNodes.find((n) => n.id === focusedNodeId) : null;
     const focusedNodeLabel = focusedNode
       ? (focusedNode.data.name as string) ||
         (focusedNode.data.label as string) ||
@@ -127,11 +118,7 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
               case "text":
                 accumulatedText += chunk.content;
                 setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === streamMsgId
-                      ? { ...m, content: accumulatedText }
-                      : m,
-                  ),
+                  prev.map((m) => (m.id === streamMsgId ? { ...m, content: accumulatedText } : m)),
                 );
                 break;
 
@@ -156,20 +143,14 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
               case "question":
                 accumulatedText += "\n\n" + chunk.content;
                 setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === streamMsgId
-                      ? { ...m, content: accumulatedText }
-                      : m,
-                  ),
+                  prev.map((m) => (m.id === streamMsgId ? { ...m, content: accumulatedText } : m)),
                 );
                 break;
 
               case "error":
                 setMessages((prev) =>
                   prev.map((m) =>
-                    m.id === streamMsgId
-                      ? { ...m, content: `Error: ${chunk.message}` }
-                      : m,
+                    m.id === streamMsgId ? { ...m, content: `Error: ${chunk.message}` } : m,
                   ),
                 );
                 break;
@@ -184,8 +165,7 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
               m.id === streamMsgId
                 ? {
                     ...m,
-                    content:
-                      "Sorry, I couldn't process that request. Could you rephrase it?",
+                    content: "Sorry, I couldn't process that request. Could you rephrase it?",
                   }
                 : m,
             ),
@@ -287,9 +267,7 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
           <div className="space-y-3 py-4">
             {messages.map((msg) => (
               <div key={msg.id}>
-                <div
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
+                <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[90%] rounded-lg px-3 py-2 text-sm ${
                       msg.role === "user"
@@ -302,9 +280,7 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
                     {/* Changes list */}
                     {msg.changes && msg.changes.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-border/50">
-                        <p className="text-xs font-medium mb-1 text-muted-foreground">
-                          Changes:
-                        </p>
+                        <p className="text-xs font-medium mb-1 text-muted-foreground">Changes:</p>
                         <ul className="text-xs space-y-0.5">
                           {msg.changes.map((change, i) => (
                             <li key={i} className="flex items-start gap-1">

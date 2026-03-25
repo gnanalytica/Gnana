@@ -47,7 +47,12 @@ function formatRelativeTime(iso: string) {
 }
 
 export default function DashboardHome() {
-  const { agents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAgents();
+  const {
+    agents,
+    isLoading: agentsLoading,
+    error: agentsError,
+    refetch: refetchAgents,
+  } = useAgents();
   const { runs, isLoading: runsLoading, error: runsError, refetch: refetchRuns } = useRuns();
 
   const isLoading = agentsLoading || runsLoading;

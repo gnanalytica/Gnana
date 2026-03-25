@@ -46,7 +46,16 @@ export function workspaceRoutes(db: Database) {
     const body = await c.req.json();
     const parsed = createWorkspaceSchema.safeParse(body);
     if (!parsed.success) {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "Validation failed", details: parsed.error.flatten().fieldErrors } }, 400);
+      return c.json(
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Validation failed",
+            details: parsed.error.flatten().fieldErrors,
+          },
+        },
+        400,
+      );
     }
     const data = parsed.data;
 
@@ -105,7 +114,16 @@ export function workspaceRoutes(db: Database) {
     const body = await c.req.json();
     const parsed = inviteMemberSchema.safeParse(body);
     if (!parsed.success) {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "Validation failed", details: parsed.error.flatten().fieldErrors } }, 400);
+      return c.json(
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Validation failed",
+            details: parsed.error.flatten().fieldErrors,
+          },
+        },
+        400,
+      );
     }
     const data = parsed.data;
 
@@ -138,7 +156,16 @@ export function workspaceRoutes(db: Database) {
     const body = await c.req.json();
     const parsed = updateMemberRoleSchema.safeParse(body);
     if (!parsed.success) {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "Validation failed", details: parsed.error.flatten().fieldErrors } }, 400);
+      return c.json(
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Validation failed",
+            details: parsed.error.flatten().fieldErrors,
+          },
+        },
+        400,
+      );
     }
     const data = parsed.data;
 

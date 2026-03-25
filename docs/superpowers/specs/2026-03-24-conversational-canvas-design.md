@@ -31,6 +31,7 @@ Left: ReactFlow canvas with generated pipeline. Right: Chat panel.
 ### Endpoint: `POST /api/chat/pipeline`
 
 **Request body:**
+
 ```typescript
 {
   message: string;            // User's message
@@ -45,6 +46,7 @@ Left: ReactFlow canvas with generated pipeline. Right: Chat panel.
 **Response (SSE stream):**
 
 Design mode — LLM returns one of:
+
 ```typescript
 // Follow-up question
 { type: "question", content: "What should trigger this agent?" }
@@ -54,13 +56,14 @@ Design mode — LLM returns one of:
 ```
 
 Modify mode:
+
 ```typescript
 { type: "pipeline", spec: PipelineSpec, message: "Added Slack notification after the analysis step", changes: ["Added Tool node: slack-notify", "Connected LLM-analyze → slack-notify"] }
 ```
 
 ### System Prompt Structure
 
-```
+````
 You are Gnana, an AI agent pipeline builder.
 
 ## Behavior
@@ -120,7 +123,7 @@ IMPORTANT: The spec MUST include name, description, and systemPrompt fields. The
 
 ## Focused Node
 {node config JSON or "None"}
-```
+````
 
 ### Provider Fallback Chain
 
@@ -135,6 +138,7 @@ For the Gnana fallback key: use Anthropic (claude-sonnet-4-20250514) as the defa
 ### Streaming
 
 Switch from single POST response to SSE (Server-Sent Events):
+
 - The Hono backend endpoint streams SSE directly
 - The Next.js API route (`/api/chat/route.ts`) is converted to a streaming passthrough using `ReadableStream` — it pipes the Hono SSE response through to the browser without buffering
 - Frontend consumes via `fetch()` with `response.body.getReader()` (not EventSource, since we need POST)
@@ -193,6 +197,7 @@ Current: sends "Current pipeline has X nodes, Y edges" as context.
 New: sends full `PipelineSpec` (all nodes with configs, all edges) via the `pipeline` field.
 
 Additional changes:
+
 - Pass `mode: "modify"` to backend
 - Pass `focusedNodeId` when a node is selected on canvas
 - Show node focus indicator in chat UI
@@ -205,6 +210,7 @@ Current: calls heuristic `generatePipelineFromPrompt()`.
 New: calls backend with `mode: "design"`.
 
 Handle the `question` response type:
+
 - Display as a normal chat message from the assistant
 - User replies naturally, conversation continues
 - Frontend tracks question count in component state
@@ -212,11 +218,13 @@ Handle the `question` response type:
 - After 3 questions, pass `forceGenerate: true` to backend — LLM must generate a pipeline
 
 Handle the `pipeline` response type:
+
 - Display summary message + pipeline card (existing behavior)
 - Show suggestions as clickable chips below the card
 - "Open in Canvas" transitions to split view
 
 Conversation history:
+
 - Accumulate `ChatMessage[]` in component state
 - Pass full history to `streamPipelineResponse()` on each call
 - History enables multi-turn context for follow-up questions
@@ -243,6 +251,7 @@ const handleCanvasChange = (newNodes, newEdges) => {
 ```
 
 Canvas diff types:
+
 ```typescript
 type CanvasEvent =
   | { type: "nodeAdded"; node: NodeSpec }
@@ -253,6 +262,7 @@ type CanvasEvent =
 ```
 
 Canvas diff rules — what counts as a "meaningful change":
+
 - `type` or `data` field changes → meaningful (triggers diff event)
 - `position` changes → ignored (just dragging nodes around)
 - Node added/removed → always meaningful
@@ -261,6 +271,7 @@ Canvas diff rules — what counts as a "meaningful change":
 Implementation: store `prevNodes`/`prevEdges` as deep-cloned refs. Update them only after emitting a diff event. Compare by serializing `{type, data}` (ignoring position).
 
 When AI assistant mode is ON and a canvas event fires:
+
 - Debounce 1 second (avoid spam during drag operations)
 - Rate limit: max 1 AI suggestion per 10 seconds (prevent cost runaway)
 - Send a lightweight modify request: "The user just added a [Tool] node" or "The user removed the approval gate"
@@ -269,6 +280,7 @@ When AI assistant mode is ON and a canvas event fires:
 ### 5. AI Assistant Mode Toggle
 
 Add a toggle button in the chat panel header:
+
 - Default: OFF (silent mode)
 - ON: chat reacts to canvas edits with suggestions
 - Persisted in localStorage per user
@@ -276,6 +288,7 @@ Add a toggle button in the chat panel header:
 ### 6. Node Focus in Chat
 
 When user clicks a node on canvas:
+
 - Chat panel shows indicator: "Focused on: [node label]"
 - Next chat message includes `focusedNodeId` in request
 - LLM scopes response to that node
@@ -294,6 +307,7 @@ SplitCanvas state (nodes, edges)
 ```
 
 Both chat and canvas mutations flow through `handlePipelineUpdate()` which:
+
 1. Applies dagre auto-layout (for AI-generated changes only)
 2. Updates state
 3. Triggers auto-save
@@ -302,11 +316,13 @@ Both chat and canvas mutations flow through `handlePipelineUpdate()` which:
 ## Files to Create/Modify
 
 ### New Files
+
 - `packages/server/src/routes/chat.ts` — rewrite (SSE streaming, enhanced prompt, provider fallback)
 - `apps/dashboard/src/lib/pipeline-ai-stream.ts` — rewrite (SSE consumer)
 - `apps/dashboard/src/lib/canvas/use-canvas-events.ts` — canvas diff computation
 
 ### Modified Files
+
 - `apps/dashboard/src/lib/pipeline-ai.ts` — delete or gut (replace heuristic with backend call)
 - `apps/dashboard/src/components/canvas/canvas-chat-panel.tsx` — full pipeline context, node focus, suggestions, assistant mode toggle
 - `apps/dashboard/src/components/canvas/split-canvas.tsx` — canvas event emission, node focus state
@@ -314,9 +330,11 @@ Both chat and canvas mutations flow through `handlePipelineUpdate()` which:
 - `apps/dashboard/src/app/api/chat/route.ts` — pass through new fields (mode, focusedNodeId, full pipeline)
 
 ### Modified Files (continued)
+
 - `apps/dashboard/src/components/canvas/pipeline-canvas.tsx` — add `onNodeSelect?: (nodeId: string | null) => void` prop. Fire it on node click (selected) and on canvas background click (null). Expose selected node ID to parent.
 
 ### Unchanged
+
 - `config-drawer.tsx` — no changes needed
 - `node-palette.tsx` — no changes needed
 - All node components — no changes needed

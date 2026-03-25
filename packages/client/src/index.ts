@@ -78,10 +78,7 @@ export class GnanaClient {
 
         // Retry on 5xx server errors
         if (response.status >= 500) {
-          lastError = new GnanaError(
-            response.status,
-            await response.text().catch(() => ""),
-          );
+          lastError = new GnanaError(response.status, await response.text().catch(() => ""));
           if (attempt < this.maxRetries) continue;
           throw lastError;
         }

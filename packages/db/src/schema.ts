@@ -27,81 +27,91 @@ export const workspaces = pgTable("workspaces", {
 
 // ---- Agents ----
 
-export const agents = pgTable("agents", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: uuid("workspace_id").references(() => workspaces.id),
-  name: text("name").notNull(),
-  description: text("description").notNull().default(""),
-  systemPrompt: text("system_prompt").notNull(),
-  toolsConfig: jsonb("tools_config").notNull().default("{}"),
-  llmConfig: jsonb("llm_config").notNull(),
-  pipelineConfig: jsonb("pipeline_config").default("{}"),
-  triggersConfig: jsonb("triggers_config").notNull().default("[]"),
-  approval: text("approval").notNull().default("required"),
-  maxToolRounds: integer("max_tool_rounds").default(10),
-  enabled: boolean("enabled").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index("agents_workspace_id_idx").on(table.workspaceId),
-]);
+export const agents = pgTable(
+  "agents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    systemPrompt: text("system_prompt").notNull(),
+    toolsConfig: jsonb("tools_config").notNull().default("{}"),
+    llmConfig: jsonb("llm_config").notNull(),
+    pipelineConfig: jsonb("pipeline_config").default("{}"),
+    triggersConfig: jsonb("triggers_config").notNull().default("[]"),
+    approval: text("approval").notNull().default("required"),
+    maxToolRounds: integer("max_tool_rounds").default(10),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("agents_workspace_id_idx").on(table.workspaceId)],
+);
 
 // ---- Runs ----
 
-export const runs = pgTable("runs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: uuid("workspace_id").references(() => workspaces.id),
-  agentId: uuid("agent_id")
-    .notNull()
-    .references(() => agents.id),
-  status: text("status").notNull().default("queued"),
-  triggerType: text("trigger_type").notNull(),
-  triggerData: jsonb("trigger_data").notNull().default("{}"),
-  analysis: jsonb("analysis"),
-  plan: jsonb("plan"),
-  result: jsonb("result"),
-  error: text("error"),
-  inputTokens: integer("input_tokens").notNull().default(0),
-  outputTokens: integer("output_tokens").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index("runs_workspace_id_idx").on(table.workspaceId),
-  index("runs_agent_id_idx").on(table.agentId),
-]);
+export const runs = pgTable(
+  "runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id),
+    status: text("status").notNull().default("queued"),
+    triggerType: text("trigger_type").notNull(),
+    triggerData: jsonb("trigger_data").notNull().default("{}"),
+    analysis: jsonb("analysis"),
+    plan: jsonb("plan"),
+    result: jsonb("result"),
+    error: text("error"),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("runs_workspace_id_idx").on(table.workspaceId),
+    index("runs_agent_id_idx").on(table.agentId),
+  ],
+);
 
 // ---- Run Logs ----
 
-export const runLogs = pgTable("run_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  runId: uuid("run_id")
-    .notNull()
-    .references(() => runs.id),
-  stage: text("stage").notNull(),
-  type: text("type").notNull(),
-  message: text("message").notNull(),
-  data: jsonb("data"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index("run_logs_run_id_idx").on(table.runId),
-]);
+export const runLogs = pgTable(
+  "run_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => runs.id),
+    stage: text("stage").notNull(),
+    type: text("type").notNull(),
+    message: text("message").notNull(),
+    data: jsonb("data"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("run_logs_run_id_idx").on(table.runId)],
+);
 
 // ---- Connectors ----
 
-export const connectors = pgTable("connectors", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: uuid("workspace_id").references(() => workspaces.id),
-  type: text("type").notNull(),
-  name: text("name").notNull(),
-  authType: text("auth_type").notNull(),
-  credentials: jsonb("credentials"),
-  config: jsonb("config").notNull().default("{}"),
-  enabled: boolean("enabled").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index("connectors_workspace_id_idx").on(table.workspaceId),
-]);
+export const connectors = pgTable(
+  "connectors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
+    type: text("type").notNull(),
+    name: text("name").notNull(),
+    authType: text("auth_type").notNull(),
+    credentials: jsonb("credentials"),
+    config: jsonb("config").notNull().default("{}"),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("connectors_workspace_id_idx").on(table.workspaceId)],
+);
 
 // ---- Connector Tools ----
 
@@ -118,37 +128,43 @@ export const connectorTools = pgTable("connector_tools", {
 
 // ---- Providers ----
 
-export const providers = pgTable("providers", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: uuid("workspace_id").references(() => workspaces.id),
-  name: text("name").notNull(),
-  type: text("type").notNull(),
-  apiKey: text("api_key").notNull(),
-  baseUrl: text("base_url"),
-  config: jsonb("config").notNull().default("{}"),
-  enabled: boolean("enabled").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index("providers_workspace_id_idx").on(table.workspaceId),
-]);
+export const providers = pgTable(
+  "providers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
+    name: text("name").notNull(),
+    type: text("type").notNull(),
+    apiKey: text("api_key").notNull(),
+    baseUrl: text("base_url"),
+    config: jsonb("config").notNull().default("{}"),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("providers_workspace_id_idx").on(table.workspaceId)],
+);
 
 // ---- API Keys ----
 
-export const apiKeys = pgTable("api_keys", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: uuid("workspace_id").references(() => workspaces.id),
-  name: text("name").notNull(),
-  keyHash: text("key_hash").notNull().unique(),
-  prefix: text("prefix").notNull(),
-  createdBy: uuid("created_by").references(() => users.id),
-  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index("api_keys_workspace_id_idx").on(table.workspaceId),
-  index("api_keys_key_hash_idx").on(table.keyHash),
-]);
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    prefix: text("prefix").notNull(),
+    createdBy: uuid("created_by").references(() => users.id),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("api_keys_workspace_id_idx").on(table.workspaceId),
+    index("api_keys_key_hash_idx").on(table.keyHash),
+  ],
+);
 
 // ---- Auth.js Users ----
 
@@ -283,22 +299,26 @@ export const pipelineVersions = pgTable("pipeline_versions", {
 
 // ---- Jobs (background job queue) ----
 
-export const jobs = pgTable("jobs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: uuid("workspace_id").references(() => workspaces.id),
-  type: text("type").notNull(),
-  payload: jsonb("payload").notNull().default("{}"),
-  status: text("status").notNull().default("pending"),
-  attempts: integer("attempts").notNull().default(0),
-  maxAttempts: integer("max_attempts").notNull().default(3),
-  error: text("error"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  startedAt: timestamp("started_at", { withTimezone: true }),
-  completedAt: timestamp("completed_at", { withTimezone: true }),
-}, (table) => [
-  index("jobs_status_idx").on(table.status),
-  index("jobs_workspace_id_idx").on(table.workspaceId),
-]);
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
+    type: text("type").notNull(),
+    payload: jsonb("payload").notNull().default("{}"),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("jobs_status_idx").on(table.status),
+    index("jobs_workspace_id_idx").on(table.workspaceId),
+  ],
+);
 
 // ---- Password Reset Tokens ----
 

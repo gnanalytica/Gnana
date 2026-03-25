@@ -7,9 +7,7 @@ const middleware: NextMiddleware = auth((req) => {
 
   // Public routes that don't require authentication
   const isPublicRoute =
-    pathname.startsWith("/auth/") ||
-    pathname.startsWith("/api/auth/") ||
-    pathname === "/auth";
+    pathname.startsWith("/auth/") || pathname.startsWith("/api/auth/") || pathname === "/auth";
 
   if (isPublicRoute) {
     return NextResponse.next();
@@ -23,7 +21,7 @@ const middleware: NextMiddleware = auth((req) => {
   }
 
   return NextResponse.next();
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }) as any;
 
 export default middleware;

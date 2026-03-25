@@ -24,9 +24,7 @@ export function useWorkspaces() {
       setWorkspaces(wsList);
       // Restore previously selected workspace from localStorage
       const savedId =
-        typeof window !== "undefined"
-          ? localStorage.getItem("gnana-current-workspace")
-          : null;
+        typeof window !== "undefined" ? localStorage.getItem("gnana-current-workspace") : null;
       const match = savedId ? wsList.find((w) => w.id === savedId) : null;
       setCurrent(match ?? wsList[0] ?? null);
     } catch {
