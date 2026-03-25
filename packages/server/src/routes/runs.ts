@@ -152,6 +152,31 @@ export function runRoutes(db: Database, events: EventBus, queue?: JobQueue) {
     return c.json(result[0]);
   });
 
+  // Resume run after human gate — editor+
+  app.post("/:id/resume", requireRole("editor"), async (c) => {
+    const id = c.req.param("id");
+    const workspaceId = c.get("workspaceId");
+    const existing = await db
+      .select()
+      .from(runs)
+      .where(and(eq(runs.id, id), eq(runs.workspaceId, workspaceId)));
+    if (existing.length === 0) {
+      return errorResponse(c, 404, "NOT_FOUND", "Run not found");
+    }
+    if (existing[0]!.status !== "awaiting_approval") {
+      return errorResponse(c, 409, "CONFLICT", "Run is not awaiting approval");
+    }
+    await db
+      .update(runs)
+      .set({ status: "approved", updatedAt: new Date() })
+      .where(and(eq(runs.id, id), eq(runs.workspaceId, workspaceId)));
+    await events.emit("run:approved", { runId: id });
+    if (queue) {
+      await queue.enqueue("run:resume", { runId: id, workspaceId });
+    }
+    return c.json({ ok: true, runId: id, status: "approved" });
+  });
+
   // Cancel run — editor+
   app.post("/:id/cancel", requireRole("editor"), async (c) => {
     const id = c.req.param("id");
