@@ -16,6 +16,7 @@ import { apiKeyRoutes } from "./routes/api-keys.js";
 import { publicInviteRoutes, protectedInviteRoutes } from "./routes/invites.js";
 import { pipelineVersionRoutes } from "./routes/pipeline-versions.js";
 import { chatRoutes } from "./routes/chat.js";
+import { auditLogRoutes } from "./routes/audit-logs.js";
 import { webhookRoutes } from "./triggers/webhook-route.js";
 import { connectionManager } from "./ws.js";
 import { authMiddleware } from "./middleware/auth.js";
@@ -258,6 +259,7 @@ function createApp(db: Database, events: EventBus, queue: JobQueue, cronManager:
   api.route("/keys", apiKeyRoutes(db));
   api.route("/pipeline-versions", pipelineVersionRoutes(db));
   api.route("/chat", chatRoutes(db));
+  api.route("/audit-logs", auditLogRoutes(db));
 
   app.route("/api", api);
 

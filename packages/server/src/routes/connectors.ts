@@ -353,5 +353,86 @@ export function connectorRoutes(db: Database, mcpManager: MCPManager) {
     });
   });
 
+  // Health check — test connector connectivity, persist result
+  app.post("/:id/health", requireRole("editor"), async (c) => {
+    const id = c.req.param("id");
+    const workspaceId = c.get("workspaceId");
+
+    const rows = await db
+      .select()
+      .from(connectors)
+      .where(and(eq(connectors.id, id), eq(connectors.workspaceId, workspaceId)))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
+    }
+
+    const connector = rows[0]!;
+    const start = Date.now();
+    let status: "healthy" | "unhealthy" = "unhealthy";
+    let error: string | undefined;
+
+    try {
+      if (connector.type === "mcp") {
+        const serverStatus = mcpManager.getServerStatus(id);
+        if (serverStatus?.connected) {
+          status = "healthy";
+        } else {
+          error = serverStatus?.error ?? "Not connected";
+        }
+      } else {
+        // For standard connectors, try a lightweight API call
+        const creds = decryptJson(connector.credentials) as Record<string, unknown>;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10_000);
+
+        try {
+          if (connector.type === "github") {
+            const resp = await fetch("https://api.github.com/user", {
+              headers: { Authorization: `Bearer ${creds.token}`, "User-Agent": "Gnana" },
+              signal: controller.signal,
+            });
+            status = resp.ok ? "healthy" : "unhealthy";
+            if (!resp.ok) error = `HTTP ${resp.status}`;
+          } else if (connector.type === "slack") {
+            const resp = await fetch("https://slack.com/api/auth.test", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${creds.token}` },
+              signal: controller.signal,
+            });
+            const body = (await resp.json()) as { ok: boolean; error?: string };
+            status = body.ok ? "healthy" : "unhealthy";
+            if (!body.ok) error = body.error ?? "Auth test failed";
+          } else if (connector.type === "http") {
+            const config = connector.config as Record<string, unknown>;
+            const baseUrl = (config.baseUrl as string) ?? "";
+            if (baseUrl) {
+              const resp = await fetch(baseUrl, { signal: controller.signal });
+              status = resp.ok ? "healthy" : "unhealthy";
+              if (!resp.ok) error = `HTTP ${resp.status}`;
+            } else {
+              error = "No base URL configured";
+            }
+          }
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : "Health check failed";
+    }
+
+    const latencyMs = Date.now() - start;
+
+    // Persist health status
+    await db
+      .update(connectors)
+      .set({ lastHealthStatus: status, lastHealthCheckAt: new Date() })
+      .where(eq(connectors.id, id));
+
+    return c.json({ status, latencyMs, error });
+  });
+
   return app;
 }
