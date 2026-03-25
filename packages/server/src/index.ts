@@ -2,9 +2,10 @@ import * as Sentry from "@sentry/node";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
-import { createDatabase, agents, runs, eq, sql, type Database } from "@gnana/db";
+import { createDatabase, runLogs, sql, type Database } from "@gnana/db";
 import { createEventBus, type EventBus, type LLMProvider } from "@gnana/core";
 import type { RouterConfig } from "@gnana/core";
+import { createRunHandler, createResumeHandler } from "./execution/run-handler.js";
 import { agentRoutes } from "./routes/agents.js";
 import { runRoutes } from "./routes/runs.js";
 import { connectorRoutes } from "./routes/connectors.js";
@@ -71,46 +72,49 @@ export function createGnanaServer(config: GnanaServerConfig) {
     });
   }
 
-  // Register the run:execute job handler
-  queue.register("run:execute", async (payload) => {
-    const { runId, agentId } = payload as {
-      runId: string;
-      agentId: string;
-    };
-    jobLog.info({ runId, agentId }, "run:execute started");
+  // Register job handlers for DAG execution
+  const runHandler = createRunHandler({ db, events });
+  const resumeHandler = createResumeHandler({ db, events });
 
-    // Load agent config from DB
-    const agentRows = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1);
+  queue.register("run:execute", runHandler);
+  queue.register("run:resume", resumeHandler);
 
-    const agent = agentRows[0];
-    if (!agent) {
-      jobLog.warn({ runId, agentId }, "run:execute failed — agent not found");
-      await db
-        .update(runs)
-        .set({ status: "failed", error: "Agent not found", updatedAt: new Date() })
-        .where(eq(runs.id, runId));
-      await events.emit("run:failed", { runId, error: "Agent not found" });
-      return;
-    }
+  // Persist DAG events as run_logs for observability
+  const dagLogEvents = [
+    "run:node_started",
+    "run:node_completed",
+    "run:tool_called",
+    "run:tool_result",
+    "run:log",
+    "run:awaiting_approval",
+    "run:approved",
+    "run:failed",
+  ] as const;
 
-    // Update run status to indicate processing has started
-    await db
-      .update(runs)
-      .set({ status: "analyzing", updatedAt: new Date() })
-      .where(eq(runs.id, runId));
-    await events.emit("run:started", { runId, agentId });
+  for (const eventName of dagLogEvents) {
+    events.on(eventName, (data: unknown) => {
+      const payload = data as Record<string, unknown>;
+      const runId = payload?.runId as string | undefined;
+      if (!runId) return;
 
-    // NOTE: Full pipeline execution requires an LLM router and tool executor.
-    // For now, mark the run as completed to confirm the job queue works end-to-end.
-    // When providers are configured, this handler should build a RunContext or
-    // DAGContext and call executePipeline() or executeDAG() from @gnana/core.
-    await db
-      .update(runs)
-      .set({ status: "completed", updatedAt: new Date() })
-      .where(eq(runs.id, runId));
-    await events.emit("run:completed", { runId });
-    jobLog.info({ runId, agentId }, "run:execute completed");
-  });
+      const nodeId = (payload?.nodeId as string) ?? "";
+      const message = formatLogMessage(eventName, payload);
+
+      // Fire-and-forget insert — don't block the event bus
+      db.insert(runLogs)
+        .values({
+          runId,
+          stage: nodeId || eventName,
+          type: eventName.replace("run:", ""),
+          message,
+          data: payload as Record<string, unknown>,
+        })
+        .then(() => {})
+        .catch((err) => {
+          jobLog.error({ err, eventName, runId }, "Failed to persist run log");
+        });
+    });
+  }
 
   return {
     app,
@@ -129,6 +133,31 @@ export function createGnanaServer(config: GnanaServerConfig) {
       return httpServer;
     },
   };
+}
+
+/** Build a human-readable log message from a DAG event payload. */
+function formatLogMessage(eventName: string, payload: Record<string, unknown>): string {
+  const nodeId = (payload.nodeId as string) ?? "";
+  switch (eventName) {
+    case "run:node_started":
+      return `Node ${nodeId} started (${payload.type ?? "unknown"})`;
+    case "run:node_completed":
+      return `Node ${nodeId} completed`;
+    case "run:tool_called":
+      return `Tool called: ${payload.tool ?? "unknown"} on node ${nodeId}`;
+    case "run:tool_result":
+      return `Tool result for ${payload.tool ?? "unknown"} on node ${nodeId}`;
+    case "run:log":
+      return `[${nodeId}] ${payload.type ?? "log"}: ${payload.content ?? payload.iteration ?? ""}`;
+    case "run:awaiting_approval":
+      return `Awaiting approval at node ${nodeId}`;
+    case "run:approved":
+      return "Run approved — resuming execution";
+    case "run:failed":
+      return `Run failed: ${payload.error ?? "unknown error"}`;
+    default:
+      return eventName;
+  }
 }
 
 function createApp(db: Database, events: EventBus, queue: JobQueue) {
