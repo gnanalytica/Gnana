@@ -1,5 +1,5 @@
 import type { EventBus, LLMRouter, ToolExecutor } from "./types.js";
-import { evaluateExpression } from "./expression-evaluator.js";
+import { evaluateExpression, type ExpressionScope } from "./expression-evaluator.js";
 
 // ---- DAG Types ----
 
@@ -151,7 +151,7 @@ export async function executeDAG(ctx: DAGContext): Promise<void> {
           return; // Pipeline pauses here
         }
         case "condition": {
-          result = await executeConditionNode(node, inputs);
+          result = await executeConditionNode(node, inputs, ctx, results);
           // For conditions, determine which branch to take
           const condResult = result as { value: boolean; data: unknown };
           const handle = condResult.value ? "true" : "false";
@@ -184,8 +184,7 @@ export async function executeDAG(ctx: DAGContext): Promise<void> {
           break;
         }
         case "parallel": {
-          // Enqueue all downstream branches concurrently
-          result = inputs;
+          result = await executeParallelNode(node, inputs, ctx, results, pipeline);
           break;
         }
         case "merge": {
@@ -193,7 +192,7 @@ export async function executeDAG(ctx: DAGContext): Promise<void> {
           break;
         }
         case "loop": {
-          result = await executeLoopNode(node, inputs, ctx);
+          result = await executeLoopNode(node, inputs, ctx, results, pipeline);
           break;
         }
         default:
@@ -309,7 +308,7 @@ export async function resumeDAG(ctx: DAGContext): Promise<void> {
           return;
         }
         case "condition": {
-          result = await executeConditionNode(node, inputs);
+          result = await executeConditionNode(node, inputs, ctx, results);
           const condResult = result as { value: boolean; data: unknown };
           const handle = condResult.value ? "true" : "false";
           const condDownstream = (adjacency.get(nodeId) ?? []).filter(
@@ -338,13 +337,13 @@ export async function resumeDAG(ctx: DAGContext): Promise<void> {
           await store.updateResult(ctx.runId, result);
           break;
         case "parallel":
-          result = inputs;
+          result = await executeParallelNode(node, inputs, ctx, results, pipeline);
           break;
         case "merge":
           result = executeMergeNode(node, inputs, pipeline);
           break;
         case "loop":
-          result = await executeLoopNode(node, inputs, ctx);
+          result = await executeLoopNode(node, inputs, ctx, results, pipeline);
           break;
         default:
           result = inputs;
@@ -493,19 +492,35 @@ async function executeToolNode(node: DAGNode, inputs: unknown, ctx: DAGContext):
 async function executeConditionNode(
   node: DAGNode,
   inputs: unknown,
+  ctx: DAGContext,
+  results: NodeResults,
 ): Promise<{ value: boolean; data: unknown }> {
   const expression = (node.data.expression as string) ?? "true";
 
-  try {
-    // Simple expression evaluation
-    // Supports: field == value, field != value, field > value, etc.
-    const inputData = typeof inputs === "object" && inputs !== null ? inputs : { value: inputs };
-    const fn = new Function("data", `with(data) { return !!(${expression}); }`);
-    const value = fn(inputData) as boolean;
-    return { value: !!value, data: inputs };
-  } catch {
-    return { value: true, data: inputs }; // Default to true on error
+  const scope: ExpressionScope = {
+    input: inputs,
+    context: {
+      triggerData: ctx.triggerData,
+      results: Object.fromEntries(results),
+      runId: ctx.runId,
+    },
+  };
+
+  const result = evaluateExpression(expression, scope);
+
+  if (!result.success) {
+    await ctx.events.emit("run:log", {
+      runId: ctx.runId,
+      nodeId: node.id,
+      type: "expression_error",
+      error: result.error,
+      expression,
+    });
+    // Safe default: false on error (do NOT execute the true branch)
+    return { value: false, data: inputs };
   }
+
+  return { value: !!result.value, data: inputs };
 }
 
 async function executeTransformNode(
@@ -632,34 +647,330 @@ function deepMerge(
   return result;
 }
 
-async function executeLoopNode(node: DAGNode, inputs: unknown, ctx: DAGContext): Promise<unknown> {
+async function executeLoopNode(
+  node: DAGNode,
+  inputs: unknown,
+  ctx: DAGContext,
+  results: NodeResults,
+  pipeline: DAGPipeline,
+): Promise<unknown> {
   const maxIterations = (node.data.maxIterations as number) ?? 10;
-  const condition = (node.data.condition as string) ?? "false";
+  const untilCondition =
+    (node.data.untilCondition as string) ?? (node.data.condition as string) ?? "false";
+  const bodyNodeIds = (node.data.bodyNodeIds as string[]) ?? [];
 
   let current = inputs;
+
   for (let i = 0; i < maxIterations; i++) {
     await ctx.events.emit("run:log", {
       runId: ctx.runId,
       nodeId: node.id,
       type: "loop_iteration",
       iteration: i + 1,
+      maxIterations,
     });
 
-    // Check exit condition
-    try {
-      const fn = new Function("data", "iteration", `return !!(${condition})`);
-      if (fn(current, i)) break;
-    } catch {
-      break;
+    // Execute body nodes in topological order
+    if (bodyNodeIds.length > 0) {
+      const bodyResults = await executeSubgraph(bodyNodeIds, current, ctx, results, pipeline);
+      // The last body node's result becomes the new "current"
+      const lastBodyNodeId = bodyNodeIds[bodyNodeIds.length - 1]!;
+      current = bodyResults.get(lastBodyNodeId) ?? current;
+
+      // Merge body results back into the main results map with iteration suffix
+      for (const [nodeId, result] of bodyResults) {
+        results.set(`${nodeId}__iter_${i}`, result);
+      }
     }
 
-    // The loop body would be the downstream nodes connected to the "body" handle.
-    // For now, pass through with iteration metadata.
-    current = {
-      ...((typeof current === "object" && current) || {}),
-      __iteration: i + 1,
+    // Evaluate until condition using the safe expression evaluator
+    const scope: ExpressionScope = {
+      input: current,
+      context: {
+        triggerData: ctx.triggerData,
+        results: Object.fromEntries(results),
+        iteration: i,
+        runId: ctx.runId,
+      },
     };
+
+    const condResult = evaluateExpression(untilCondition, scope);
+    if (condResult.success && !!condResult.value) {
+      await ctx.events.emit("run:log", {
+        runId: ctx.runId,
+        nodeId: node.id,
+        type: "loop_condition_met",
+        iteration: i + 1,
+      });
+      break;
+    }
   }
 
   return current;
+}
+
+// ---- Subgraph execution helpers ----
+
+function topologicalSortNodes(
+  nodes: DAGNode[],
+  edges: DAGEdge[],
+): string[] {
+  const adjacency = new Map<string, string[]>();
+  const inDeg = new Map<string, number>();
+
+  for (const node of nodes) {
+    adjacency.set(node.id, []);
+    inDeg.set(node.id, 0);
+  }
+
+  for (const edge of edges) {
+    adjacency.get(edge.source)?.push(edge.target);
+    inDeg.set(edge.target, (inDeg.get(edge.target) ?? 0) + 1);
+  }
+
+  const queue: string[] = [];
+  for (const [id, deg] of inDeg) {
+    if (deg === 0) queue.push(id);
+  }
+
+  const order: string[] = [];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    order.push(id);
+    for (const next of adjacency.get(id) ?? []) {
+      const newDeg = (inDeg.get(next) ?? 1) - 1;
+      inDeg.set(next, newDeg);
+      if (newDeg === 0) queue.push(next);
+    }
+  }
+
+  return order;
+}
+
+async function executeNodeByType(
+  node: DAGNode,
+  inputs: unknown,
+  ctx: DAGContext,
+  results: NodeResults,
+  pipeline: DAGPipeline,
+): Promise<unknown> {
+  switch (node.type) {
+    case "llm":
+      return executeLLMNode(node, inputs, ctx);
+    case "tool":
+      return executeToolNode(node, inputs, ctx);
+    case "condition": {
+      const condResult = await executeConditionNode(node, inputs, ctx, results);
+      return condResult;
+    }
+    case "transform":
+      return executeTransformNode(node, inputs, ctx);
+    case "merge":
+      return executeMergeNode(node, inputs, pipeline);
+    case "loop":
+      return executeLoopNode(node, inputs, ctx, results, pipeline);
+    case "parallel":
+      return executeParallelNode(node, inputs, ctx, results, pipeline);
+    case "output":
+      return inputs;
+    case "humanGate":
+      // In subgraph context, auto-approve (loops/parallel cannot pause)
+      return { approved: true };
+    default:
+      return inputs;
+  }
+}
+
+async function executeSubgraph(
+  nodeIds: string[],
+  initialInput: unknown,
+  ctx: DAGContext,
+  parentResults: NodeResults,
+  pipeline: DAGPipeline,
+): Promise<NodeResults> {
+  const subResults: NodeResults = new Map();
+  const subNodes = pipeline.nodes.filter((n) => nodeIds.includes(n.id));
+  const subEdges = pipeline.edges.filter(
+    (e) => nodeIds.includes(e.source) && nodeIds.includes(e.target),
+  );
+
+  const order = topologicalSortNodes(subNodes, subEdges);
+
+  for (const nodeId of order) {
+    const node = subNodes.find((n) => n.id === nodeId);
+    if (!node) continue;
+
+    // Gather inputs: from subgraph results first, fall back to parent results, then initialInput
+    const inputEdges = subEdges.filter((e) => e.target === nodeId);
+    let nodeInput: unknown;
+    if (inputEdges.length === 0) {
+      nodeInput = initialInput;
+    } else if (inputEdges.length === 1) {
+      nodeInput =
+        subResults.get(inputEdges[0]!.source) ??
+        parentResults.get(inputEdges[0]!.source) ??
+        initialInput;
+    } else {
+      const combined: Record<string, unknown> = {};
+      for (const edge of inputEdges) {
+        const key = edge.label ?? edge.source;
+        combined[key] = subResults.get(edge.source) ?? parentResults.get(edge.source);
+      }
+      nodeInput = combined;
+    }
+
+    await ctx.events.emit("run:node_started", {
+      runId: ctx.runId,
+      nodeId,
+      type: node.type,
+    });
+
+    const result = await executeNodeByType(node, nodeInput, ctx, parentResults, pipeline);
+    subResults.set(nodeId, result);
+
+    await ctx.events.emit("run:node_completed", { runId: ctx.runId, nodeId, result });
+    await ctx.store.updateNodeResult(ctx.runId, nodeId, result);
+  }
+
+  return subResults;
+}
+
+// ---- Parallel execution helpers ----
+
+/**
+ * Starting from `startNodeId`, walk forward through the pipeline
+ * collecting node IDs until we hit a merge node or circle back
+ * to the parallel node.
+ */
+function identifyBranch(
+  startNodeId: string,
+  parallelNodeId: string,
+  pipeline: DAGPipeline,
+): string[] {
+  const branchNodeIds: string[] = [];
+  const visited = new Set<string>();
+  const queue = [startNodeId];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (visited.has(current) || current === parallelNodeId) continue;
+    visited.add(current);
+
+    const node = pipeline.nodes.find((n) => n.id === current);
+    if (!node) continue;
+
+    // Stop at merge nodes -- they belong to the parent flow, not the branch
+    if (node.type === "merge") continue;
+
+    branchNodeIds.push(current);
+
+    // Enqueue downstream nodes
+    const downstream = pipeline.edges
+      .filter((e) => e.source === current)
+      .map((e) => e.target);
+    queue.push(...downstream);
+  }
+
+  return branchNodeIds;
+}
+
+function branchTimeout(ms: number, message: string): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+async function executeParallelNode(
+  node: DAGNode,
+  inputs: unknown,
+  ctx: DAGContext,
+  results: NodeResults,
+  pipeline: DAGPipeline,
+): Promise<unknown> {
+  const onBranchError = (node.data.onBranchError as string) ?? "continue";
+  const branchTimeoutMs = (node.data.branchTimeoutMs as number) ?? 0;
+
+  // Identify branches from downstream edges
+  const adjacency = buildAdjacencyList(pipeline);
+  const downstream = adjacency.get(node.id) ?? [];
+
+  if (downstream.length === 0) return inputs;
+
+  await ctx.events.emit("run:log", {
+    runId: ctx.runId,
+    nodeId: node.id,
+    type: "parallel_start",
+    branchCount: downstream.length,
+  });
+
+  // Each downstream edge is a separate branch
+  const branchPromises = downstream.map(async (edge) => {
+    const branchNodeIds = identifyBranch(edge.target, node.id, pipeline);
+    // Deep copy input for isolation between branches
+    let branchInput: unknown;
+    try {
+      branchInput = structuredClone(inputs);
+    } catch {
+      branchInput = JSON.parse(JSON.stringify(inputs));
+    }
+
+    const branchExecution = executeSubgraph(
+      branchNodeIds,
+      branchInput,
+      ctx,
+      results,
+      pipeline,
+    );
+
+    if (branchTimeoutMs > 0) {
+      return Promise.race([
+        branchExecution,
+        branchTimeout(branchTimeoutMs, `Branch starting at ${edge.target} timed out`),
+      ]);
+    }
+
+    return branchExecution;
+  });
+
+  let branchResults: NodeResults[];
+
+  if (onBranchError === "fail-all") {
+    branchResults = await Promise.all(branchPromises);
+  } else {
+    // Default: continue on error (fail-safe)
+    const settled = await Promise.allSettled(branchPromises);
+    branchResults = [];
+    for (const settledResult of settled) {
+      if (settledResult.status === "fulfilled") {
+        branchResults.push(settledResult.value);
+      } else {
+        await ctx.events.emit("run:log", {
+          runId: ctx.runId,
+          nodeId: node.id,
+          type: "branch_error",
+          error:
+            settledResult.reason instanceof Error
+              ? settledResult.reason.message
+              : "Unknown branch error",
+        });
+        branchResults.push(new Map());
+      }
+    }
+  }
+
+  // Merge all branch results back into the main results map
+  for (const br of branchResults) {
+    for (const [nodeId, brResult] of br) {
+      results.set(nodeId, brResult);
+    }
+  }
+
+  // Return the combined branch outputs as an array
+  const branchOutputs = branchResults.map((br) => {
+    const entries = [...br.entries()];
+    const lastEntry = entries[entries.length - 1];
+    return lastEntry ? lastEntry[1] : undefined;
+  });
+
+  return branchOutputs;
 }
