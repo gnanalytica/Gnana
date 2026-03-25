@@ -1,64 +1,154 @@
 "use client";
 
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { api } from "@/lib/api";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  ProviderCard,
+  type ProviderRow,
+  type ConnectionStatus,
+} from "@/components/settings/provider-card";
+import { ProviderFormDialog } from "@/components/settings/provider-form-dialog";
 
-interface ProviderRow {
-  id: string;
-  name: string;
-  type: string;
-  models: string[];
-  status: "active" | "inactive";
+interface TestResult {
+  ok: boolean;
+  provider: string;
+  error?: string;
+  latencyMs: number;
+  modelCount?: number;
 }
 
-const placeholderProviders: ProviderRow[] = [
-  {
-    id: "p-1",
-    name: "Anthropic",
-    type: "Anthropic",
-    models: ["Claude Opus", "Claude Sonnet", "Claude Haiku"],
-    status: "active",
-  },
-  {
-    id: "p-2",
-    name: "Google",
-    type: "Google",
-    models: ["Gemini Pro", "Gemini Flash"],
-    status: "active",
-  },
-  {
-    id: "p-3",
-    name: "OpenAI",
-    type: "OpenAI",
-    models: ["GPT-4o", "GPT-4o-mini", "o1"],
-    status: "active",
-  },
-];
-
 export default function ProvidersPage() {
-  const [providers] = useState<ProviderRow[]>(placeholderProviders);
+  const [providers, setProviders] = useState<ProviderRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newType, setNewType] = useState("");
-  const [newApiKey, setNewApiKey] = useState("");
+  const [editingProvider, setEditingProvider] = useState<ProviderRow | undefined>(undefined);
+
+  // Track which provider is currently being tested
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  // Fetch providers from API
+  const fetchProviders = useCallback(async () => {
+    try {
+      setError(null);
+      const res = await api.fetch("/api/providers");
+      const json = await res.json();
+      const data = (json.data ?? []) as ProviderRow[];
+      // Preserve client-side status from previous state
+      setProviders((prev) => {
+        const statusMap = new Map(
+          prev.map((p) => [
+            p.id,
+            { status: p.status, statusMessage: p.statusMessage, modelCount: p.modelCount },
+          ]),
+        );
+        return data.map((p) => ({
+          ...p,
+          status: statusMap.get(p.id)?.status,
+          statusMessage: statusMap.get(p.id)?.statusMessage,
+          modelCount: statusMap.get(p.id)?.modelCount,
+        }));
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load providers");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProviders();
+  }, [fetchProviders]);
+
+  // Test connection handler
+  const handleTest = useCallback(async (provider: ProviderRow) => {
+    setTestingId(provider.id);
+    try {
+      const res = await api.fetch(`/api/providers/${provider.id}/test`, {
+        method: "POST",
+      });
+      const result: TestResult = await res.json();
+      setProviders((prev) =>
+        prev.map((p) =>
+          p.id === provider.id
+            ? {
+                ...p,
+                status: (result.ok ? "connected" : "error") as ConnectionStatus,
+                statusMessage: result.ok ? undefined : result.error,
+                modelCount: result.modelCount,
+              }
+            : p,
+        ),
+      );
+    } catch (err) {
+      setProviders((prev) =>
+        prev.map((p) =>
+          p.id === provider.id
+            ? {
+                ...p,
+                status: "error" as ConnectionStatus,
+                statusMessage: err instanceof Error ? err.message : "Test failed",
+              }
+            : p,
+        ),
+      );
+    } finally {
+      setTestingId(null);
+    }
+  }, []);
+
+  // Delete handler
+  const handleDelete = useCallback(
+    async (provider: ProviderRow) => {
+      try {
+        await api.fetch(`/api/providers/${provider.id}`, { method: "DELETE" });
+        await fetchProviders();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to delete provider");
+      }
+    },
+    [fetchProviders],
+  );
+
+  // Set default handler
+  const handleSetDefault = useCallback(
+    async (provider: ProviderRow) => {
+      try {
+        await api.fetch(`/api/providers/${provider.id}/default`, { method: "PUT" });
+        await fetchProviders();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to set default provider");
+      }
+    },
+    [fetchProviders],
+  );
+
+  // Edit handler
+  const handleEdit = useCallback((provider: ProviderRow) => {
+    setEditingProvider(provider);
+    setDialogOpen(true);
+  }, []);
+
+  // Add handler
+  const handleAdd = useCallback(() => {
+    setEditingProvider(undefined);
+    setDialogOpen(true);
+  }, []);
+
+  // After save callback
+  const handleSaved = useCallback(() => {
+    fetchProviders();
+  }, [fetchProviders]);
+
+  // Check if there is a default provider
+  const hasDefault = providers.some((p) => p.isDefault);
+
+  // ---- Render ----
 
   return (
     <div className="p-8 space-y-6">
@@ -66,100 +156,92 @@ export default function ProvidersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Providers</h1>
-          <p className="text-muted-foreground mt-1">Manage LLM provider connections.</p>
+          <p className="text-muted-foreground mt-1">
+            Manage LLM provider connections.
+          </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={handleAdd}>
           <Plus className="h-4 w-4" />
           Add Provider
         </Button>
       </div>
 
-      {/* Provider Table */}
-      <div className="rounded-md border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="text-left p-3 font-medium">Name</th>
-              <th className="text-left p-3 font-medium">Type</th>
-              <th className="text-left p-3 font-medium">Models</th>
-              <th className="text-left p-3 font-medium">Status</th>
-              <th className="text-left p-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {providers.map((provider) => (
-              <tr key={provider.id} className="border-b last:border-b-0">
-                <td className="p-3 font-medium">{provider.name}</td>
-                <td className="p-3">{provider.type}</td>
-                <td className="p-3">
-                  <div className="flex flex-wrap gap-1">
-                    {provider.models.map((model) => (
-                      <Badge key={model} variant="secondary" className="text-xs">
-                        {model}
-                      </Badge>
-                    ))}
-                  </div>
-                </td>
-                <td className="p-3">
-                  <Badge
-                    variant={provider.status === "active" ? "default" : "secondary"}
-                    className={
-                      provider.status === "active" ? "bg-green-600 hover:bg-green-600/80" : ""
-                    }
-                  >
-                    {provider.status === "active" ? "Active" : "Inactive"}
-                  </Badge>
-                </td>
-                <td className="p-3">
-                  <Button variant="ghost" size="sm">
-                    Edit
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* No default provider warning */}
+      {!loading && providers.length > 0 && !hasDefault && (
+        <div className="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            No default provider set. Set a default provider so agents have a
+            fallback LLM connection.
+          </span>
+        </div>
+      )}
 
-      {/* Add Provider Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Provider</DialogTitle>
-            <DialogDescription>Connect a new LLM provider to your workspace.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="provider-type">Provider Type</Label>
-              <Select value={newType} onValueChange={setNewType}>
-                <SelectTrigger id="provider-type">
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="anthropic">Anthropic</SelectItem>
-                  <SelectItem value="google">Google</SelectItem>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="openrouter">OpenRouter</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* Error message */}
+      {error && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* Loading state */}
+      {loading && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-40" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="provider-key">API Key</Label>
-              <Input
-                id="provider-key"
-                type="password"
-                placeholder="sk-..."
-                value={newApiKey}
-                onChange={(e) => setNewApiKey(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline">Test Connection</Button>
-            <Button disabled={!newType || !newApiKey.trim()}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && providers.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-12 text-center">
+          <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
+          <h2 className="text-lg font-semibold">No LLM providers configured</h2>
+          <p className="text-muted-foreground mt-2 max-w-md">
+            Add an LLM provider to start running agents. Gnana supports
+            Anthropic, Google, OpenAI, and OpenRouter.
+          </p>
+          <Button className="mt-6" onClick={handleAdd}>
+            <Plus className="h-4 w-4" />
+            Add Provider
+          </Button>
+        </div>
+      )}
+
+      {/* Provider cards grid */}
+      {!loading && providers.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {providers.map((provider) => (
+            <ProviderCard
+              key={provider.id}
+              provider={provider}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onSetDefault={handleSetDefault}
+              onTest={handleTest}
+              testing={testingId === provider.id}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Dialog */}
+      <ProviderFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        provider={editingProvider}
+        onSaved={handleSaved}
+      />
     </div>
   );
 }
