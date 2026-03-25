@@ -89,6 +89,8 @@ export interface Connector {
   credentials: Record<string, unknown> | null;
   config: Record<string, unknown>;
   enabled: boolean;
+  lastHealthStatus?: "healthy" | "unhealthy" | null;
+  lastHealthCheckAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
