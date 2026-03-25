@@ -10,12 +10,14 @@ function TransformNodeComponent({ data }: NodeProps) {
   const isExecuted = d._executed === true;
   const isCompleted = d._completed === true;
   const isFailed = d._failed === true;
+  const isDryRunExecuted = d._dryRunExecuted === true;
+  const isDryRunSkipped = d._dryRunSkipped === true;
 
   return (
     <div
       className={`bg-card border-2 rounded-lg p-4 min-w-[150px] shadow-md transition-all ${
         hasErrors ? "border-destructive" : "border-orange-400"
-      } ${isExecuting ? "ring-2 ring-blue-500 animate-pulse" : ""} ${isCompleted ? "ring-2 ring-green-500/50" : ""} ${isFailed ? "ring-2 ring-red-500" : ""} ${isExecuted ? "opacity-70" : ""}`}
+      } ${isExecuting ? "ring-2 ring-blue-500 animate-pulse" : ""} ${isCompleted ? "ring-2 ring-green-500/50" : ""} ${isFailed ? "ring-2 ring-red-500" : ""} ${isExecuted ? "opacity-70" : ""} ${isDryRunExecuted ? "ring-2 ring-green-500 !border-green-500" : ""} ${isDryRunSkipped ? "opacity-40" : ""}`}
     >
       <Handle type="target" position={Position.Left} className="!bg-orange-400" />
       <Handle type="source" position={Position.Right} className="!bg-orange-400" />

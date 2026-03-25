@@ -237,6 +237,7 @@ function PipelineCanvasInner({
   const clipboardRef = useRef<ClipboardData | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [dryRunNodeIds, setDryRunNodeIds] = useState<Set<string> | null>(null);
   const [validationErrors, setValidationErrors] = useState<Map<string, ValidationError[]>>(
     new Map(),
   );
@@ -295,7 +296,7 @@ function PipelineCanvasInner({
     }, 500);
   }, [nodes, edges]);
 
-  // Inject _errors, _executing, _completed, _failed into node data for rendering
+  // Inject _errors, _executing, _completed, _failed, _dryRunExecuted, _dryRunSkipped into node data for rendering
   useEffect(() => {
     setNodes((nds) =>
       nds.map((n) => {
@@ -307,6 +308,9 @@ function PipelineCanvasInner({
         const isLiveExecuting = liveRun?.isRunning && liveRun.executingNodeId === n.id;
         const isLiveCompleted = liveRun?.isRunning && liveRun.completedNodeIds.has(n.id);
         const isLiveFailed = liveRun?.failedNodeIds.has(n.id);
+        // Dry-run preview state
+        const isDryRunExecuted = dryRunNodeIds !== null && dryRunNodeIds.has(n.id);
+        const isDryRunSkipped = dryRunNodeIds !== null && !dryRunNodeIds.has(n.id);
         return {
           ...n,
           data: {
@@ -316,11 +320,13 @@ function PipelineCanvasInner({
             _executed: isPreviewExecuted,
             _completed: isLiveCompleted ?? false,
             _failed: isLiveFailed ?? false,
+            _dryRunExecuted: isDryRunExecuted,
+            _dryRunSkipped: isDryRunSkipped,
           },
         };
       }),
     );
-  }, [validationErrors, execPreview.currentNodeId, execPreview.executedNodeIds, liveRun, setNodes]);
+  }, [validationErrors, execPreview.currentNodeId, execPreview.executedNodeIds, liveRun, dryRunNodeIds, setNodes]);
 
   // Notify parent on changes
   useEffect(() => {
@@ -670,6 +676,9 @@ function PipelineCanvasInner({
           onResume={execPreview.resume}
           onReset={execPreview.reset}
           onStep={execPreview.stepForward}
+          nodes={nodeSpecs}
+          edges={edgeSpecs}
+          onPreviewChange={setDryRunNodeIds}
         />
       )}
 
