@@ -17,9 +17,15 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
+    "@gnana/connector-github": "workspace:*",
+    "@gnana/connector-http": "workspace:*",
+    "@gnana/connector-slack": "workspace:*",
     "@gnana/core": "workspace:*",
     "@gnana/db": "workspace:*",
+    "@gnana/provider-anthropic": "workspace:*",
     "@gnana/provider-base": "workspace:*",
+    "@gnana/provider-google": "workspace:*",
+    "@gnana/provider-openai": "workspace:*",
     "@hono/node-server": "^1.13.0",
     "@sentry/node": "^10.45.0",
     "drizzle-orm": "^0.38.0",
