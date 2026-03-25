@@ -1,4 +1,5 @@
 import type { EventBus, LLMRouter, ToolExecutor } from "./types.js";
+import { evaluateExpression } from "./expression-evaluator.js";
 
 // ---- DAG Types ----
 
@@ -174,7 +175,7 @@ export async function executeDAG(ctx: DAGContext): Promise<void> {
           continue; // Skip the default downstream processing
         }
         case "transform": {
-          result = await executeTransformNode(node, inputs);
+          result = await executeTransformNode(node, inputs, ctx);
           break;
         }
         case "output": {
@@ -188,8 +189,7 @@ export async function executeDAG(ctx: DAGContext): Promise<void> {
           break;
         }
         case "merge": {
-          // Combine all inputs (gathered above)
-          result = inputs;
+          result = executeMergeNode(node, inputs, pipeline);
           break;
         }
         case "loop": {
@@ -331,15 +331,17 @@ export async function resumeDAG(ctx: DAGContext): Promise<void> {
           continue;
         }
         case "transform":
-          result = await executeTransformNode(node, inputs);
+          result = await executeTransformNode(node, inputs, ctx);
           break;
         case "output":
           result = inputs;
           await store.updateResult(ctx.runId, result);
           break;
         case "parallel":
-        case "merge":
           result = inputs;
+          break;
+        case "merge":
+          result = executeMergeNode(node, inputs, pipeline);
           break;
         case "loop":
           result = await executeLoopNode(node, inputs, ctx);
@@ -506,16 +508,128 @@ async function executeConditionNode(
   }
 }
 
-async function executeTransformNode(node: DAGNode, inputs: unknown): Promise<unknown> {
+async function executeTransformNode(
+  node: DAGNode,
+  inputs: unknown,
+  ctx: DAGContext,
+): Promise<unknown> {
   const expression = (node.data.expression as string) ?? "";
   if (!expression) return inputs;
 
+  // Build results map from already-executed nodes for context
+  const scope = {
+    input: inputs,
+    context: {
+      triggerData: ctx.triggerData,
+      results: {} as Record<string, unknown>,
+      runId: ctx.runId,
+    },
+  };
+
   try {
-    const fn = new Function("data", `return (${expression})`);
-    return fn(inputs) as unknown;
-  } catch {
+    return evaluateExpression(expression, scope);
+  } catch (err) {
+    console.warn(
+      `[dag-executor] Transform expression failed for node ${node.id}: ${
+        err instanceof Error ? err.message : String(err)
+      }. Returning raw input.`,
+    );
     return inputs;
   }
+}
+
+function executeMergeNode(node: DAGNode, inputs: unknown, pipeline: DAGPipeline): unknown {
+  const strategy = (node.data.strategy as string) ?? "concat";
+
+  switch (strategy) {
+    case "object": {
+      // Merge into single object using edge labels as keys.
+      // gatherInputs already produces this when there are multiple edges,
+      // but ensure we always return an object.
+      if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs)) {
+        return inputs;
+      }
+      // Single input - wrap with the edge label
+      const inputEdges = pipeline.edges.filter((e) => e.target === node.id);
+      if (inputEdges.length === 1) {
+        const key = inputEdges[0]!.label ?? inputEdges[0]!.source;
+        return { [key]: inputs };
+      }
+      return { value: inputs };
+    }
+
+    case "first": {
+      // Return the first non-null input
+      if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs)) {
+        const values = Object.values(inputs as Record<string, unknown>);
+        return values.find((v) => v != null) ?? null;
+      }
+      return inputs;
+    }
+
+    case "deepMerge": {
+      // Deep merge all input objects
+      if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs)) {
+        const values = Object.values(inputs as Record<string, unknown>);
+        let merged: Record<string, unknown> = {};
+        for (const val of values) {
+          if (typeof val === "object" && val !== null && !Array.isArray(val)) {
+            merged = deepMerge(merged, val as Record<string, unknown>);
+          }
+        }
+        return merged;
+      }
+      return inputs;
+    }
+
+    case "concat":
+    default: {
+      // Combine all inputs into a flat array
+      if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs)) {
+        const values = Object.values(inputs as Record<string, unknown>);
+        const flat: unknown[] = [];
+        for (const v of values) {
+          if (Array.isArray(v)) {
+            flat.push(...v);
+          } else {
+            flat.push(v);
+          }
+        }
+        return flat;
+      }
+      return Array.isArray(inputs) ? inputs : [inputs];
+    }
+  }
+}
+
+/** Recursively deep-merge two plain objects. Arrays are concatenated. */
+function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...target };
+  for (const key of Object.keys(source)) {
+    const tVal = target[key];
+    const sVal = source[key];
+    if (
+      typeof tVal === "object" &&
+      tVal !== null &&
+      !Array.isArray(tVal) &&
+      typeof sVal === "object" &&
+      sVal !== null &&
+      !Array.isArray(sVal)
+    ) {
+      result[key] = deepMerge(
+        tVal as Record<string, unknown>,
+        sVal as Record<string, unknown>,
+      );
+    } else if (Array.isArray(tVal) && Array.isArray(sVal)) {
+      result[key] = [...tVal, ...sVal];
+    } else {
+      result[key] = sVal;
+    }
+  }
+  return result;
 }
 
 async function executeLoopNode(node: DAGNode, inputs: unknown, ctx: DAGContext): Promise<unknown> {
