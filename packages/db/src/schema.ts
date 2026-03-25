@@ -109,6 +109,8 @@ export const connectors = pgTable(
     enabled: boolean("enabled").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    lastHealthStatus: text("last_health_status"),
+    lastHealthCheckAt: timestamp("last_health_check_at", { withTimezone: true }),
   },
   (table) => [index("connectors_workspace_id_idx").on(table.workspaceId)],
 );
@@ -350,5 +352,30 @@ export const usageRecords = pgTable(
   (table) => [
     unique().on(table.workspaceId, table.period),
     index("usage_records_workspace_id_idx").on(table.workspaceId),
+  ],
+);
+
+// ---- Audit Logs ----
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id),
+    userId: uuid("user_id").references(() => users.id),
+    action: text("action").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: text("resource_id"),
+    changes: jsonb("changes"),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("audit_logs_workspace_id_idx").on(table.workspaceId),
+    index("audit_logs_action_idx").on(table.action),
+    index("audit_logs_created_at_idx").on(table.createdAt),
   ],
 );
