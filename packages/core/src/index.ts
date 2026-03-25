@@ -44,3 +44,6 @@ export { executePipeline, resumePipeline, rejectRun } from "./pipeline.js";
 // DAG executor
 export { executeDAG, resumeDAG } from "./dag-executor.js";
 export type { DAGNode, DAGEdge, DAGPipeline, DAGContext, DAGRunStore } from "./dag-executor.js";
+
+// Expression evaluator
+export { evaluateExpression, type ExpressionScope, type ExpressionContext, type ExpressionResult } from "./expression-evaluator.js";
