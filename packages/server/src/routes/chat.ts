@@ -707,15 +707,44 @@ interface ParsedResponse {
 }
 
 function parseAIResponse(fullText: string): ParsedResponse {
+  // Try code-fenced JSON first
   const jsonMatch = fullText.match(/```json\s*([\s\S]*?)\s*```/);
 
-  if (!jsonMatch) {
+  // If no code fence, try to find raw JSON object in the text
+  let jsonStr: string | null = null;
+  let textBeforeJson = "";
+
+  if (jsonMatch) {
+    jsonStr = jsonMatch[1]!;
+    textBeforeJson = fullText.slice(0, jsonMatch.index).trim();
+  } else {
+    // Look for raw JSON: find first { and last matching }
+    const firstBrace = fullText.indexOf("{");
+    if (firstBrace !== -1) {
+      const candidate = fullText.slice(firstBrace);
+      // Find the matching closing brace
+      let depth = 0;
+      let end = -1;
+      for (let i = 0; i < candidate.length; i++) {
+        if (candidate[i] === "{") depth++;
+        else if (candidate[i] === "}") {
+          depth--;
+          if (depth === 0) { end = i; break; }
+        }
+      }
+      if (end !== -1) {
+        jsonStr = candidate.slice(0, end + 1);
+        textBeforeJson = fullText.slice(0, firstBrace).trim();
+      }
+    }
+  }
+
+  if (!jsonStr) {
     return { textBeforeJson: fullText.trim(), pipeline: null, question: null };
   }
 
-  const textBeforeJson = fullText.slice(0, jsonMatch.index).trim();
   try {
-    const parsed = JSON.parse(jsonMatch[1]!);
+    const parsed = JSON.parse(jsonStr);
 
     // Check if it's a structured question
     if (parsed.type === "question" && parsed.content) {

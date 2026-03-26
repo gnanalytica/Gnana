@@ -4,7 +4,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Zap, AlertTriangle } from "lucide-react";
 
 function TriggerNodeComponent({ data }: NodeProps) {
-  const d = data as Record<string, unknown>;
+  const d = (data ?? {}) as Record<string, unknown>;
   const hasErrors = Array.isArray(d._errors) && d._errors.length > 0;
   const isExecuting = d._executing === true;
   const isExecuted = d._executed === true;

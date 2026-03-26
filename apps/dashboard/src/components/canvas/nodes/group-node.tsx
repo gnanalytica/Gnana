@@ -4,7 +4,7 @@ import { type NodeProps } from "@xyflow/react";
 import { Group } from "lucide-react";
 
 function GroupNodeComponent({ data }: NodeProps) {
-  const d = data as Record<string, unknown>;
+  const d = (data ?? {}) as Record<string, unknown>;
   const label = (d.label as string) ?? "Group";
   const childCount = (d.childCount as number) ?? 0;
 

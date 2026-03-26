@@ -12,7 +12,7 @@ const phaseConfig = {
 type Phase = keyof typeof phaseConfig;
 
 function LLMNodeComponent({ data }: NodeProps) {
-  const d = data as Record<string, unknown>;
+  const d = (data ?? {}) as Record<string, unknown>;
   const phase: Phase = (d.phase as Phase) ?? "analyze";
   const config = phaseConfig[phase];
   const Icon = config.icon;

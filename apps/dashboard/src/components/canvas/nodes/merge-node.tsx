@@ -4,7 +4,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Combine, AlertTriangle } from "lucide-react";
 
 function MergeNodeComponent({ data }: NodeProps) {
-  const d = data as Record<string, unknown>;
+  const d = (data ?? {}) as Record<string, unknown>;
   const inputCount = typeof d.inputs === "number" ? d.inputs : 2;
   const hasErrors = Array.isArray(d._errors) && d._errors.length > 0;
   const isExecuting = d._executing === true;

@@ -4,7 +4,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { GitFork, AlertTriangle } from "lucide-react";
 
 function ParallelNodeComponent({ data }: NodeProps) {
-  const d = data as Record<string, unknown>;
+  const d = (data ?? {}) as Record<string, unknown>;
   const branchCount = typeof d.branches === "number" ? d.branches : 2;
   const hasErrors = Array.isArray(d._errors) && d._errors.length > 0;
   const isExecuting = d._executing === true;
