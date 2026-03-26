@@ -174,10 +174,10 @@ function createDefaultEdges(): Edge[] {
 }
 
 function specToNodes(specs: NodeSpec[]): Node[] {
-  return specs.map((s) => ({
+  return specs.map((s, i) => ({
     id: s.id,
     type: s.type,
-    position: s.position,
+    position: s.position ?? { x: 200 * (i % 5), y: 150 * Math.floor(i / 5) },
     data: s.data,
     ...(s.parentId ? { parentId: s.parentId, extent: "parent" as const } : {}),
   }));
