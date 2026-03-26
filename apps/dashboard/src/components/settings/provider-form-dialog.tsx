@@ -193,9 +193,7 @@ export function ProviderFormDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Provider" : "Add Provider"}</DialogTitle>
           <DialogDescription>
-            {isEdit
-              ? "Update the provider configuration."
-              : "Connect an LLM provider to Gnana."}
+            {isEdit ? "Update the provider configuration." : "Connect an LLM provider to Gnana."}
           </DialogDescription>
         </DialogHeader>
 
@@ -322,11 +320,7 @@ export function ProviderFormDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            variant="outline"
-            onClick={handleTest}
-            disabled={!canTest || testing}
-          >
+          <Button variant="outline" onClick={handleTest} disabled={!canTest || testing}>
             {testing && <Loader2 className="h-4 w-4 animate-spin" />}
             Test Connection
           </Button>

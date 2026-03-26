@@ -216,8 +216,16 @@
   ```
 
   Replace the existing import line:
+
   ```typescript
-  import { eq, and, workspaces, workspaceMembers, workspaceInvites, type Database } from "@gnana/db";
+  import {
+    eq,
+    and,
+    workspaces,
+    workspaceMembers,
+    workspaceInvites,
+    type Database,
+  } from "@gnana/db";
   ```
 
 - [ ] Wire `planLimit` middleware to the member invite route. In `packages/server/src/routes/workspaces.ts`, change line 107 from:
@@ -238,10 +246,7 @@
   // Auto-assign Free plan
   const freePlan = await tx.select().from(plans).where(eq(plans.name, "free")).limit(1);
   if (freePlan[0]) {
-    await tx
-      .update(workspaces)
-      .set({ planId: freePlan[0].id })
-      .where(eq(workspaces.id, ws.id));
+    await tx.update(workspaces).set({ planId: freePlan[0].id }).where(eq(workspaces.id, ws.id));
   }
   ```
 
@@ -272,10 +277,7 @@
     // Auto-assign Free plan
     const freePlan = await tx.select().from(plans).where(eq(plans.name, "free")).limit(1);
     if (freePlan[0]) {
-      await tx
-        .update(workspaces)
-        .set({ planId: freePlan[0].id })
-        .where(eq(workspaces.id, ws.id));
+      await tx.update(workspaces).set({ planId: freePlan[0].id }).where(eq(workspaces.id, ws.id));
     }
 
     return ws;
@@ -393,9 +395,7 @@
     for (const [key, value] of Object.entries(changes)) {
       if (key === "before" || key === "after") {
         result[key] =
-          value && typeof value === "object"
-            ? redact(value as Record<string, unknown>)
-            : value;
+          value && typeof value === "object" ? redact(value as Record<string, unknown>) : value;
       } else {
         result[key] = value;
       }
@@ -444,71 +444,71 @@
   After the `return c.json(result[0], 201);` in the `POST /` handler (line 83), add audit logging just before the return. The handler's end should become:
 
   ```typescript
-    const result = await db
-      .insert(agents)
-      .values({
-        name: data.name,
-        description: data.description ?? "",
-        systemPrompt: data.systemPrompt,
-        toolsConfig: data.toolsConfig ?? {},
-        llmConfig: data.llmConfig,
-        triggersConfig: data.triggersConfig ?? [],
-        approval: data.approval ?? "required",
-        maxToolRounds: data.maxToolRounds ?? 10,
-        workspaceId,
-      })
-      .returning();
-
-    logAuditAsync(db, {
+  const result = await db
+    .insert(agents)
+    .values({
+      name: data.name,
+      description: data.description ?? "",
+      systemPrompt: data.systemPrompt,
+      toolsConfig: data.toolsConfig ?? {},
+      llmConfig: data.llmConfig,
+      triggersConfig: data.triggersConfig ?? [],
+      approval: data.approval ?? "required",
+      maxToolRounds: data.maxToolRounds ?? 10,
       workspaceId,
-      userId: c.get("userId"),
-      action: "agent.created",
-      resourceType: "agent",
-      resourceId: result[0]!.id,
-      changes: { after: result[0] },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+    })
+    .returning();
 
-    return c.json(result[0], 201);
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "agent.created",
+    resourceType: "agent",
+    resourceId: result[0]!.id,
+    changes: { after: result[0] },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
+
+  return c.json(result[0], 201);
   ```
 
   In the `PUT /:id` handler, after the existing `return c.json(result[0]);` on line 116, add audit logging just before that return:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "agent.updated",
-      resourceType: "agent",
-      resourceId: id,
-      changes: { after: data },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "agent.updated",
+    resourceType: "agent",
+    resourceId: id,
+    changes: { after: data },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json(result[0]);
+  return c.json(result[0]);
   ```
 
   In the `DELETE /:id` handler, after the `db.update` call and before `return c.json({ ok: true });`:
 
   ```typescript
-    await db
-      .update(agents)
-      .set({ enabled: false })
-      .where(and(eq(agents.id, id), eq(agents.workspaceId, workspaceId)));
+  await db
+    .update(agents)
+    .set({ enabled: false })
+    .where(and(eq(agents.id, id), eq(agents.workspaceId, workspaceId)));
 
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "agent.deleted",
-      resourceType: "agent",
-      resourceId: id,
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "agent.deleted",
+    resourceType: "agent",
+    resourceId: id,
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json({ ok: true });
+  return c.json({ ok: true });
   ```
 
 - [ ] Add audit logging to `packages/server/src/routes/runs.ts`. Add the import:
@@ -520,51 +520,51 @@
   In the `POST /` handler, after `const run = result[0]!;` and before the usage tracking block:
 
   ```typescript
-    const run = result[0]!;
+  const run = result[0]!;
 
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "run.started",
-      resourceType: "run",
-      resourceId: run.id,
-      changes: { after: { agentId: data.agentId, triggerType: data.triggerType ?? "manual" } },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "run.started",
+    resourceType: "run",
+    resourceId: run.id,
+    changes: { after: { agentId: data.agentId, triggerType: data.triggerType ?? "manual" } },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
   ```
 
   In the `POST /:id/approve` handler, after `await events.emit(...)` and before `return c.json(result[0]);`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "run.approved",
-      resourceType: "run",
-      resourceId: id,
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "run.approved",
+    resourceType: "run",
+    resourceId: id,
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json(result[0]);
+  return c.json(result[0]);
   ```
 
   In the `POST /:id/reject` handler, after `await events.emit(...)` and before `return c.json(result[0]);`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "run.rejected",
-      resourceType: "run",
-      resourceId: id,
-      changes: { reason: body.reason },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "run.rejected",
+    resourceType: "run",
+    resourceId: id,
+    changes: { reason: body.reason },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json(result[0]);
+  return c.json(result[0]);
   ```
 
 - [ ] Add audit logging to `packages/server/src/routes/connectors.ts`. Add the import:
@@ -576,34 +576,34 @@
   In the `POST /` handler, before `return c.json({ ...result[0], credentials: "***" }, 201);`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "connector.created",
-      resourceType: "connector",
-      resourceId: result[0]!.id,
-      changes: { after: { name: data.name, type: data.type, authType: data.authType } },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "connector.created",
+    resourceType: "connector",
+    resourceId: result[0]!.id,
+    changes: { after: { name: data.name, type: data.type, authType: data.authType } },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json({ ...result[0], credentials: "***" }, 201);
+  return c.json({ ...result[0], credentials: "***" }, 201);
   ```
 
   In the `DELETE /:id` handler, before `return c.json({ ok: true });`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "connector.deleted",
-      resourceType: "connector",
-      resourceId: id,
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "connector.deleted",
+    resourceType: "connector",
+    resourceId: id,
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json({ ok: true });
+  return c.json({ ok: true });
   ```
 
 - [ ] Add audit logging to `packages/server/src/routes/workspaces.ts`. Add the import:
@@ -615,51 +615,51 @@
   In the `POST /:id/members` handler, before `return c.json(result[0], 201);`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "member.invited",
-      resourceType: "member",
-      resourceId: result[0]!.id,
-      changes: { after: { email: data.email, role: data.role ?? "viewer" } },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "member.invited",
+    resourceType: "member",
+    resourceId: result[0]!.id,
+    changes: { after: { email: data.email, role: data.role ?? "viewer" } },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json(result[0], 201);
+  return c.json(result[0], 201);
   ```
 
   In the `PATCH /:id/members/:memberId` handler, before `return c.json(result[0]);`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "member.role_changed",
-      resourceType: "member",
-      resourceId: memberId,
-      changes: { after: { role: data.role } },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "member.role_changed",
+    resourceType: "member",
+    resourceId: memberId,
+    changes: { after: { role: data.role } },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json(result[0]);
+  return c.json(result[0]);
   ```
 
   In the `DELETE /:id/members/:memberId` handler, before `return c.json({ ok: true });`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "member.removed",
-      resourceType: "member",
-      resourceId: memberId,
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "member.removed",
+    resourceType: "member",
+    resourceId: memberId,
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json({ ok: true });
+  return c.json({ ok: true });
   ```
 
 - [ ] Add audit logging to `packages/server/src/routes/providers.ts`. Add the import:
@@ -671,34 +671,34 @@
   In the `POST /` handler, before `return c.json({ ...result[0], apiKey: "***" }, 201);`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "provider.created",
-      resourceType: "provider",
-      resourceId: result[0]!.id,
-      changes: { after: { name: data.name, type: data.type } },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "provider.created",
+    resourceType: "provider",
+    resourceId: result[0]!.id,
+    changes: { after: { name: data.name, type: data.type } },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json({ ...result[0], apiKey: "***" }, 201);
+  return c.json({ ...result[0], apiKey: "***" }, 201);
   ```
 
   In the `DELETE /:id` handler, before `return c.json({ ok: true });`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "provider.deleted",
-      resourceType: "provider",
-      resourceId: id,
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "provider.deleted",
+    resourceType: "provider",
+    resourceId: id,
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json({ ok: true });
+  return c.json({ ok: true });
   ```
 
 - [ ] Add audit logging to `packages/server/src/routes/api-keys.ts`. Add the import:
@@ -710,43 +710,43 @@
   In the `POST /` handler, before the final `return c.json(...)`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId,
-      action: "api_key.created",
-      resourceType: "api_key",
-      resourceId: created.id,
-      changes: { after: { name: body.name, prefix } },
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId,
+    action: "api_key.created",
+    resourceType: "api_key",
+    resourceId: created.id,
+    changes: { after: { name: body.name, prefix } },
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json(
-      {
-        id: created.id,
-        name: created.name,
-        key: fullKey,
-        prefix: created.prefix,
-        createdAt: created.createdAt,
-      },
-      201,
-    );
+  return c.json(
+    {
+      id: created.id,
+      name: created.name,
+      key: fullKey,
+      prefix: created.prefix,
+      createdAt: created.createdAt,
+    },
+    201,
+  );
   ```
 
   In the `DELETE /:id` handler, after the early return for not-found and before `return c.json({ ok: true });`:
 
   ```typescript
-    logAuditAsync(db, {
-      workspaceId,
-      userId: c.get("userId"),
-      action: "api_key.revoked",
-      resourceType: "api_key",
-      resourceId: id,
-      ipAddress: getClientIp(c.req.raw),
-      userAgent: c.req.header("user-agent"),
-    });
+  logAuditAsync(db, {
+    workspaceId,
+    userId: c.get("userId"),
+    action: "api_key.revoked",
+    resourceType: "api_key",
+    resourceId: id,
+    ipAddress: getClientIp(c.req.raw),
+    userAgent: c.req.header("user-agent"),
+  });
 
-    return c.json({ ok: true });
+  return c.json({ ok: true });
   ```
 
 - [ ] Run typecheck and build: `pnpm --filter @gnana/server typecheck && pnpm --filter @gnana/server build`
@@ -1254,7 +1254,8 @@
                       disabled={isCurrent}
                       onClick={() => {
                         if (!isCurrent) {
-                          window.location.href = "mailto:sales@gnanalytica.com?subject=Plan Upgrade";
+                          window.location.href =
+                            "mailto:sales@gnanalytica.com?subject=Plan Upgrade";
                         }
                       }}
                     >
@@ -1387,9 +1388,7 @@
     const currentUsage = await db
       .select()
       .from(usageRecords)
-      .where(
-        and(eq(usageRecords.workspaceId, workspaceId), eq(usageRecords.period, currentPeriod)),
-      )
+      .where(and(eq(usageRecords.workspaceId, workspaceId), eq(usageRecords.period, currentPeriod)))
       .limit(1);
 
     // Last 6 months usage history
@@ -1400,12 +1399,7 @@
     const usageHistory = await db
       .select()
       .from(usageRecords)
-      .where(
-        and(
-          eq(usageRecords.workspaceId, workspaceId),
-          gte(usageRecords.period, historyStart),
-        ),
-      )
+      .where(and(eq(usageRecords.workspaceId, workspaceId), gte(usageRecords.period, historyStart)))
       .orderBy(desc(usageRecords.period))
       .limit(6);
 
@@ -1486,12 +1480,7 @@
     TableHeader,
     TableRow,
   } from "@/components/ui/table";
-  import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-  } from "@/components/ui/dialog";
+  import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
   import { api } from "@/lib/api";
   import { useWorkspaces } from "@/lib/hooks/use-workspaces";
 
@@ -1706,11 +1695,7 @@
                         </TableCell>
                         <TableCell className="text-right">
                           {log.changes && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedLog(log)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedLog(log)}>
                               View
                             </Button>
                           )}
@@ -1897,9 +1882,7 @@
     {connector.lastHealthStatus && (
       <span
         className={`inline-block h-2.5 w-2.5 rounded-full ${
-          connector.lastHealthStatus === "healthy"
-            ? "bg-green-500"
-            : "bg-red-500"
+          connector.lastHealthStatus === "healthy" ? "bg-green-500" : "bg-red-500"
         }`}
         title={`Health: ${connector.lastHealthStatus}${
           connector.lastHealthCheckAt

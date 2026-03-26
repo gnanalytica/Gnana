@@ -223,17 +223,11 @@ export function connectorRoutes(db: Database, mcpManager: MCPManager) {
     const result = await db
       .select()
       .from(connectors)
-      .where(
-        and(
-          eq(connectors.id, id),
-          eq(connectors.workspaceId, workspaceId),
-        ),
-      )
+      .where(and(eq(connectors.id, id), eq(connectors.workspaceId, workspaceId)))
       .limit(1);
 
     const connector = result[0];
-    if (!connector)
-      return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
+    if (!connector) return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
     if (connector.type !== "mcp") {
       return c.json(
         {
@@ -270,9 +264,7 @@ export function connectorRoutes(db: Database, mcpManager: MCPManager) {
       await testClient.disconnect();
 
       // Delete existing tool rows for this connector
-      await db
-        .delete(connectorTools)
-        .where(eq(connectorTools.connectorId, id));
+      await db.delete(connectorTools).where(eq(connectorTools.connectorId, id));
 
       // Insert new tool rows
       if (tools.length > 0) {
@@ -314,17 +306,11 @@ export function connectorRoutes(db: Database, mcpManager: MCPManager) {
     const result = await db
       .select({ id: connectors.id, type: connectors.type })
       .from(connectors)
-      .where(
-        and(
-          eq(connectors.id, id),
-          eq(connectors.workspaceId, workspaceId),
-        ),
-      )
+      .where(and(eq(connectors.id, id), eq(connectors.workspaceId, workspaceId)))
       .limit(1);
 
     const connector = result[0];
-    if (!connector)
-      return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
+    if (!connector) return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
 
     if (connector.type !== "mcp") {
       return c.json({

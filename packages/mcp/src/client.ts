@@ -56,8 +56,7 @@ export class MCPClient {
       };
     } catch (err) {
       this._status.connected = false;
-      this._status.error =
-        err instanceof Error ? err.message : String(err);
+      this._status.error = err instanceof Error ? err.message : String(err);
       throw err;
     }
   }
@@ -123,9 +122,7 @@ export class MCPClient {
    */
   async callTool(toolName: string, input: unknown): Promise<string> {
     if (!this._status.connected) {
-      throw new Error(
-        `MCP server "${this.config.name}" is not connected`,
-      );
+      throw new Error(`MCP server "${this.config.name}" is not connected`);
     }
     const result = await this.client.callTool({
       name: toolName,
@@ -134,9 +131,7 @@ export class MCPClient {
 
     // MCP results contain a content array -- extract text parts
     if ("content" in result && Array.isArray(result.content)) {
-      const parts = (
-        result.content as Array<{ type: string; text?: string }>
-      )
+      const parts = (result.content as Array<{ type: string; text?: string }>)
         .filter((c) => c.type === "text" && c.text)
         .map((c) => c.text!);
       return parts.join("\n") || JSON.stringify(result.content);
@@ -157,9 +152,7 @@ export class MCPClient {
   private createTransport(): Transport {
     if (this.config.transport === "stdio") {
       if (!this.config.command) {
-        throw new Error(
-          `MCP server "${this.config.name}": stdio transport requires a command`,
-        );
+        throw new Error(`MCP server "${this.config.name}": stdio transport requires a command`);
       }
       return new StdioClientTransport({
         command: this.config.command,
@@ -169,15 +162,11 @@ export class MCPClient {
     }
     if (this.config.transport === "http") {
       if (!this.config.url) {
-        throw new Error(
-          `MCP server "${this.config.name}": HTTP transport requires a url`,
-        );
+        throw new Error(`MCP server "${this.config.name}": HTTP transport requires a url`);
       }
       return new StreamableHTTPClientTransport(new URL(this.config.url));
     }
-    throw new Error(
-      `Unsupported MCP transport: ${String(this.config.transport)}`,
-    );
+    throw new Error(`Unsupported MCP transport: ${String(this.config.transport)}`);
   }
 
   /** Call tools/list and convert MCP tool schemas to ToolDefinition[]. */

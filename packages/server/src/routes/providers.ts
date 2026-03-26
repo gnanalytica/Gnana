@@ -23,13 +23,38 @@ interface ModelInfo {
 // Static model lists per provider (mirrors @gnana/provider-* packages)
 const STATIC_MODELS: Record<ProviderType, ModelInfo[]> = {
   anthropic: [
-    { id: "claude-opus-4-20250514", name: "Claude Opus 4", contextWindow: 200000, maxOutputTokens: 32000 },
-    { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", contextWindow: 200000, maxOutputTokens: 16000 },
-    { id: "claude-haiku-4-20250514", name: "Claude Haiku 4", contextWindow: 200000, maxOutputTokens: 8192 },
+    {
+      id: "claude-opus-4-20250514",
+      name: "Claude Opus 4",
+      contextWindow: 200000,
+      maxOutputTokens: 32000,
+    },
+    {
+      id: "claude-sonnet-4-20250514",
+      name: "Claude Sonnet 4",
+      contextWindow: 200000,
+      maxOutputTokens: 16000,
+    },
+    {
+      id: "claude-haiku-4-20250514",
+      name: "Claude Haiku 4",
+      contextWindow: 200000,
+      maxOutputTokens: 8192,
+    },
   ],
   google: [
-    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", contextWindow: 1048576, maxOutputTokens: 65536 },
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", contextWindow: 1048576, maxOutputTokens: 65536 },
+    {
+      id: "gemini-2.5-pro",
+      name: "Gemini 2.5 Pro",
+      contextWindow: 1048576,
+      maxOutputTokens: 65536,
+    },
+    {
+      id: "gemini-2.5-flash",
+      name: "Gemini 2.5 Flash",
+      contextWindow: 1048576,
+      maxOutputTokens: 65536,
+    },
   ],
   openai: [
     { id: "gpt-4.1", name: "GPT-4.1", contextWindow: 1047576, maxOutputTokens: 32768 },

@@ -5,10 +5,7 @@ export class DrizzleDAGRunStore implements DAGRunStore {
   constructor(private db: Database) {}
 
   async updateStatus(runId: string, status: string): Promise<void> {
-    await this.db
-      .update(runs)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(runs.id, runId));
+    await this.db.update(runs).set({ status, updatedAt: new Date() }).where(eq(runs.id, runId));
   }
 
   async updateNodeResult(runId: string, nodeId: string, result: unknown): Promise<void> {
@@ -41,9 +38,6 @@ export class DrizzleDAGRunStore implements DAGRunStore {
   }
 
   async updateError(runId: string, error: string): Promise<void> {
-    await this.db
-      .update(runs)
-      .set({ error, updatedAt: new Date() })
-      .where(eq(runs.id, runId));
+    await this.db.update(runs).set({ error, updatedAt: new Date() }).where(eq(runs.id, runId));
   }
 }

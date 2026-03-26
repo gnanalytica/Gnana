@@ -156,9 +156,7 @@ export default function ProvidersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Providers</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage LLM provider connections.
-          </p>
+          <p className="text-muted-foreground mt-1">Manage LLM provider connections.</p>
         </div>
         <Button onClick={handleAdd}>
           <Plus className="h-4 w-4" />
@@ -171,8 +169,8 @@ export default function ProvidersPage() {
         <div className="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>
-            No default provider set. Set a default provider so agents have a
-            fallback LLM connection.
+            No default provider set. Set a default provider so agents have a fallback LLM
+            connection.
           </span>
         </div>
       )}
@@ -208,8 +206,8 @@ export default function ProvidersPage() {
           <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
           <h2 className="text-lg font-semibold">No LLM providers configured</h2>
           <p className="text-muted-foreground mt-2 max-w-md">
-            Add an LLM provider to start running agents. Gnana supports
-            Anthropic, Google, OpenAI, and OpenRouter.
+            Add an LLM provider to start running agents. Gnana supports Anthropic, Google, OpenAI,
+            and OpenRouter.
           </p>
           <Button className="mt-6" onClick={handleAdd}>
             <Plus className="h-4 w-4" />

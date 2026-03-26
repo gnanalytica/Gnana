@@ -104,13 +104,7 @@
 
   // ---- Token Types ----
 
-  type TokenType =
-    | "number"
-    | "string"
-    | "identifier"
-    | "operator"
-    | "punctuation"
-    | "eof";
+  type TokenType = "number" | "string" | "identifier" | "operator" | "punctuation" | "eof";
 
   interface Token {
     type: TokenType;
@@ -137,7 +131,12 @@
         const ch = this.source[this.pos]!;
 
         // Numbers
-        if (this.isDigit(ch) || (ch === "." && this.pos + 1 < this.source.length && this.isDigit(this.source[this.pos + 1]!))) {
+        if (
+          this.isDigit(ch) ||
+          (ch === "." &&
+            this.pos + 1 < this.source.length &&
+            this.isDigit(this.source[this.pos + 1]!))
+        ) {
           this.readNumber();
           continue;
         }
@@ -205,7 +204,10 @@
 
     private readNumber(): void {
       const start = this.pos;
-      while (this.pos < this.source.length && (this.isDigit(this.source[this.pos]!) || this.source[this.pos] === ".")) {
+      while (
+        this.pos < this.source.length &&
+        (this.isDigit(this.source[this.pos]!) || this.source[this.pos] === ".")
+      ) {
         this.pos++;
       }
       this.tokens.push({ type: "number", value: this.source.slice(start, this.pos), pos: start });
@@ -221,10 +223,17 @@
           if (this.pos < this.source.length) {
             const escaped = this.source[this.pos]!;
             switch (escaped) {
-              case "n": value += "\n"; break;
-              case "t": value += "\t"; break;
-              case "\\": value += "\\"; break;
-              default: value += escaped;
+              case "n":
+                value += "\n";
+                break;
+              case "t":
+                value += "\t";
+                break;
+              case "\\":
+                value += "\\";
+                break;
+              default:
+                value += escaped;
             }
           }
         } else {
@@ -260,7 +269,9 @@
     parse(): ASTNode {
       const node = this.parseTernary();
       if (this.current().type !== "eof") {
-        throw new Error(`Unexpected token '${this.current().value}' at position ${this.current().pos}`);
+        throw new Error(
+          `Unexpected token '${this.current().value}' at position ${this.current().pos}`,
+        );
       }
       return node;
     }
@@ -432,7 +443,9 @@
           // Check if this is a method call: property followed by (
           if (this.current().type === "punctuation" && this.current().value === "(") {
             if (!ALLOWED_METHODS.has(prop.value)) {
-              throw new Error(`Method '${prop.value}' is not allowed. Allowed: ${[...ALLOWED_METHODS].join(", ")}`);
+              throw new Error(
+                `Method '${prop.value}' is not allowed. Allowed: ${[...ALLOWED_METHODS].join(", ")}`,
+              );
             }
             this.advance(); // skip (
             const args: ASTNode[] = [];
@@ -446,12 +459,22 @@
             this.expect("punctuation", ")");
             node = {
               type: "call",
-              callee: { type: "member", object: node, property: { type: "literal", value: prop.value }, computed: false },
+              callee: {
+                type: "member",
+                object: node,
+                property: { type: "literal", value: prop.value },
+                computed: false,
+              },
               args,
             };
           } else {
             // Check "length" as a property, not a method
-            node = { type: "member", object: node, property: { type: "literal", value: prop.value }, computed: false };
+            node = {
+              type: "member",
+              object: node,
+              property: { type: "literal", value: prop.value },
+              computed: false,
+            };
           }
         } else if (this.current().type === "punctuation" && this.current().value === "[") {
           this.advance();
@@ -740,7 +763,9 @@
     private evalCall(node: ASTNode & { type: "call" }): unknown {
       // Only member calls are allowed (e.g., input.name.startsWith("Dr"))
       if (node.callee.type !== "member") {
-        throw new Error("Only method calls on objects are allowed (e.g., input.name.startsWith(...))");
+        throw new Error(
+          "Only method calls on objects are allowed (e.g., input.name.startsWith(...))",
+        );
       }
 
       const memberNode = node.callee;
@@ -954,6 +979,7 @@
 - [ ] Update the `case "transform"` call site in both `executeDAG` (the main BFS loop) and `resumeDAG` to pass `ctx` and `results`:
 
   In `executeDAG` (around line 177), change:
+
   ```typescript
   case "transform": {
     result = await executeTransformNode(node, inputs, ctx, results);
@@ -962,6 +988,7 @@
   ```
 
   In `resumeDAG` (around line 333), change:
+
   ```typescript
   case "transform":
     result = await executeTransformNode(node, inputs, ctx, results);
@@ -1037,7 +1064,12 @@
         if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs)) {
           const values = Object.values(inputs as Record<string, unknown>);
           return values.reduce<unknown>((acc, val) => {
-            if (typeof acc === "object" && acc !== null && typeof val === "object" && val !== null) {
+            if (
+              typeof acc === "object" &&
+              acc !== null &&
+              typeof val === "object" &&
+              val !== null
+            ) {
               return deepMerge(acc as Record<string, unknown>, val as Record<string, unknown>);
             }
             return val ?? acc;
@@ -1139,6 +1171,7 @@
 - [ ] Update the condition node call sites in both `executeDAG` and `resumeDAG` to pass `ctx` and `results`:
 
   In `executeDAG` (around line 153), change:
+
   ```typescript
   case "condition": {
     result = await executeConditionNode(node, inputs, ctx, results);
@@ -1146,6 +1179,7 @@
   ```
 
   In `resumeDAG` (around line 312), change:
+
   ```typescript
   case "condition": {
     result = await executeConditionNode(node, inputs, ctx, results);
@@ -1168,10 +1202,7 @@
 - [ ] Add a `topologicalSortNodes` helper function to `dag-executor.ts` (used by the subgraph executor):
 
   ```typescript
-  function topologicalSortNodes(
-    nodes: DAGNode[],
-    edges: DAGEdge[],
-  ): string[] {
+  function topologicalSortNodes(nodes: DAGNode[], edges: DAGEdge[]): string[] {
     const adjacency = new Map<string, string[]>();
     const inDegree = new Map<string, number>();
 
@@ -1312,7 +1343,8 @@
     pipeline: DAGPipeline,
   ): Promise<unknown> {
     const maxIterations = (node.data.maxIterations as number) ?? 10;
-    const untilCondition = (node.data.untilCondition as string) ?? (node.data.condition as string) ?? "false";
+    const untilCondition =
+      (node.data.untilCondition as string) ?? (node.data.condition as string) ?? "false";
     const bodyNodeIds = (node.data.bodyNodeIds as string[]) ?? [];
 
     let current = inputs;
@@ -1369,6 +1401,7 @@
 - [ ] Update the `case "loop"` call sites in both `executeDAG` and `resumeDAG` to pass `results` and `pipeline`:
 
   In `executeDAG`:
+
   ```typescript
   case "loop": {
     result = await executeLoopNode(node, inputs, ctx, results, pipeline);
@@ -1377,6 +1410,7 @@
   ```
 
   In `resumeDAG`:
+
   ```typescript
   case "loop":
     result = await executeLoopNode(node, inputs, ctx, results, pipeline);
@@ -1427,9 +1461,7 @@
       branchNodeIds.push(current);
 
       // Enqueue downstream nodes
-      const downstream = pipeline.edges
-        .filter((e) => e.source === current)
-        .map((e) => e.target);
+      const downstream = pipeline.edges.filter((e) => e.source === current).map((e) => e.target);
       queue.push(...downstream);
     }
 
@@ -1479,13 +1511,7 @@
       // Deep copy input for isolation between branches
       const branchInput = structuredClone(inputs);
 
-      const branchExecution = executeSubgraph(
-        branchNodeIds,
-        branchInput,
-        ctx,
-        results,
-        pipeline,
-      );
+      const branchExecution = executeSubgraph(branchNodeIds, branchInput, ctx, results, pipeline);
 
       if (branchTimeoutMs > 0) {
         return Promise.race([
@@ -1512,9 +1538,10 @@
             runId: ctx.runId,
             nodeId: node.id,
             type: "branch_error",
-            error: settledResult.reason instanceof Error
-              ? settledResult.reason.message
-              : "Unknown branch error",
+            error:
+              settledResult.reason instanceof Error
+                ? settledResult.reason.message
+                : "Unknown branch error",
           });
           branchResults.push(new Map());
         }
@@ -1549,6 +1576,7 @@
   ```
 
   And in `resumeDAG` (around line 341):
+
   ```typescript
   case "parallel":
     result = await executeParallelNode(node, inputs, ctx, results, pipeline);
@@ -1684,9 +1712,7 @@
       const node = pipeline.nodes.find((n) => n.id === current);
       if (!node || node.type === "merge") continue;
       branchNodeIds.push(current);
-      const downstream = pipeline.edges
-        .filter((e) => e.source === current)
-        .map((e) => e.target);
+      const downstream = pipeline.edges.filter((e) => e.source === current).map((e) => e.target);
       queue.push(...downstream);
     }
     return branchNodeIds;
@@ -1879,7 +1905,10 @@
       case "first": {
         if (typeof mockInput === "object" && mockInput !== null && !Array.isArray(mockInput)) {
           const values = Object.values(mockInput as Record<string, unknown>);
-          return { mockOutput: values.find((v) => v !== undefined && v !== null) ?? null, warnings: [] };
+          return {
+            mockOutput: values.find((v) => v !== undefined && v !== null) ?? null,
+            warnings: [],
+          };
         }
         return { mockOutput: mockInput, warnings: [] };
       }
@@ -2041,7 +2070,13 @@
           }
 
           case "transform": {
-            const transformResult = mockTransformNode(node, mockInput, mockResults, triggerData, runId);
+            const transformResult = mockTransformNode(
+              node,
+              mockInput,
+              mockResults,
+              triggerData,
+              runId,
+            );
             mockOutput = transformResult.mockOutput;
             warnings.push(...transformResult.warnings);
             break;
@@ -2055,15 +2090,13 @@
           }
 
           case "loop": {
-            const maxIter = Math.min(
-              maxLoopIterations,
-              (node.data.maxIterations as number) ?? 10,
-            );
+            const maxIter = Math.min(maxLoopIterations, (node.data.maxIterations as number) ?? 10);
             iterationCount = maxIter;
             mockOutput = mockInput;
 
             // Try evaluating untilCondition to see if it terminates early
-            const untilCond = (node.data.untilCondition as string) ?? (node.data.condition as string) ?? "false";
+            const untilCond =
+              (node.data.untilCondition as string) ?? (node.data.condition as string) ?? "false";
             for (let i = 0; i < maxIter; i++) {
               const scope: ExpressionScope = {
                 input: mockOutput,
@@ -2096,7 +2129,8 @@
                 const branchNode = pipeline.nodes.find((n) => n.id === branchNodeId);
                 if (!branchNode) continue;
 
-                const branchInput = gatherMockInputs(branchNodeId, pipeline, mockResults) ?? mockInput;
+                const branchInput =
+                  gatherMockInputs(branchNodeId, pipeline, mockResults) ?? mockInput;
                 // Simple mock for branch nodes
                 let branchOutput: unknown = branchInput;
                 const branchWarnings: string[] = [];
@@ -2115,7 +2149,13 @@
                   branchDuration = toolRes.estimatedDurationMs;
                   branchWarnings.push(...toolRes.warnings);
                 } else if (branchNode.type === "transform") {
-                  const trResult = mockTransformNode(branchNode, branchInput, mockResults, triggerData, runId);
+                  const trResult = mockTransformNode(
+                    branchNode,
+                    branchInput,
+                    mockResults,
+                    triggerData,
+                    runId,
+                  );
                   branchOutput = trResult.mockOutput;
                   branchWarnings.push(...trResult.warnings);
                 }
@@ -2204,9 +2244,7 @@
       return {
         success: false,
         executionPath,
-        skippedNodeIds: pipeline.nodes
-          .map((n) => n.id)
-          .filter((id) => !visitedNodeIds.has(id)),
+        skippedNodeIds: pipeline.nodes.map((n) => n.id).filter((id) => !visitedNodeIds.has(id)),
         totalEstimatedTokens: { input: 0, output: 0 },
         validationWarnings,
         error: error instanceof Error ? error.message : "Unknown dry-run error",
@@ -2220,7 +2258,11 @@
   ```typescript
   // Expression evaluator
   export { evaluate, validateExpression } from "./expression-evaluator.js";
-  export type { ExpressionScope, ExpressionContext, ExpressionResult } from "./expression-evaluator.js";
+  export type {
+    ExpressionScope,
+    ExpressionContext,
+    ExpressionResult,
+  } from "./expression-evaluator.js";
 
   // Dry-run engine
   export { executeDryRun } from "./dag-dry-run.js";
@@ -2264,7 +2306,17 @@
 - [ ] Add the import for `executeDryRun` and `agents` table. Update the existing imports:
 
   ```typescript
-  import { eq, and, desc, sql, runs, runLogs, usageRecords, agents, type Database } from "@gnana/db";
+  import {
+    eq,
+    and,
+    desc,
+    sql,
+    runs,
+    runLogs,
+    usageRecords,
+    agents,
+    type Database,
+  } from "@gnana/db";
   import type { EventBus, DAGPipeline } from "@gnana/core";
   import { executeDryRun } from "@gnana/core";
   ```
@@ -2572,18 +2624,22 @@
   ```typescript
   // Dry-run preview (server-side)
   // Note: agentId should be passed as a prop; for now use a placeholder that the parent provides
-  const dryRun = useDryRun({ agentId: (nodes[0]?.data as Record<string, unknown>)?._agentId as string ?? "" });
+  const dryRun = useDryRun({
+    agentId: ((nodes[0]?.data as Record<string, unknown>)?._agentId as string) ?? "",
+  });
   ```
 
   **Alternative (better):** Add `agentId` as an optional prop to `PipelineCanvasProps`:
 
   In the `PipelineCanvasProps` interface, add:
+
   ```typescript
   /** Agent ID for dry-run preview */
   agentId?: string;
   ```
 
   In the `PipelineCanvasInner` function signature, destructure `agentId`:
+
   ```typescript
   function PipelineCanvasInner({
     initialNodes,
@@ -2596,6 +2652,7 @@
   ```
 
   Then use it:
+
   ```typescript
   const dryRun = useDryRun({ agentId: agentId ?? "" });
   ```
@@ -2629,6 +2686,7 @@
   ```
 
   And add these to the returned data object:
+
   ```typescript
   data: {
     ...n.data,
@@ -2691,22 +2749,22 @@
 
 ### Create
 
-| File | Task | Description |
-|---|---|---|
-| `packages/core/src/expression-evaluator.ts` | Task 1 | Safe expression parser + evaluator (lexer, recursive-descent parser, tree-walking evaluator) |
-| `packages/core/src/dag-dry-run.ts` | Task 7 | Dry-run engine (mock executors, execution path computation, token estimation) |
-| `apps/dashboard/src/lib/canvas/use-dry-run.ts` | Task 9 | React hook for dry-run API calls and state |
+| File                                           | Task   | Description                                                                                  |
+| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| `packages/core/src/expression-evaluator.ts`    | Task 1 | Safe expression parser + evaluator (lexer, recursive-descent parser, tree-walking evaluator) |
+| `packages/core/src/dag-dry-run.ts`             | Task 7 | Dry-run engine (mock executors, execution path computation, token estimation)                |
+| `apps/dashboard/src/lib/canvas/use-dry-run.ts` | Task 9 | React hook for dry-run API calls and state                                                   |
 
 ### Modify
 
-| File | Task(s) | Change |
-|---|---|---|
-| `packages/core/src/dag-executor.ts` | Tasks 2-6 | Replace `new Function()` calls with expression evaluator. Add `executeSubgraph`, `executeNodeByType`, `identifyBranch`, `branchTimeout` helpers. Enhance parallel node with `Promise.all`. Add merge node strategies. Pass `results` and `pipeline` to node executors that need them. |
-| `packages/core/src/index.ts` | Task 7 | Export expression evaluator and dry-run types/functions |
-| `packages/server/src/validation/schemas.ts` | Task 8 | Add `dryRunSchema` Zod schema |
-| `packages/server/src/routes/runs.ts` | Task 8 | Add `POST /dry-run` endpoint |
-| `apps/dashboard/src/components/canvas/execution-toolbar.tsx` | Task 9 | Add Preview button, loading state, result summary badge, clear button |
-| `apps/dashboard/src/components/canvas/pipeline-canvas.tsx` | Task 9 | Accept `agentId` prop, wire `useDryRun` hook, apply execution path highlighting and skipped node dimming via `nodeClassName` |
+| File                                                         | Task(s)   | Change                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core/src/dag-executor.ts`                          | Tasks 2-6 | Replace `new Function()` calls with expression evaluator. Add `executeSubgraph`, `executeNodeByType`, `identifyBranch`, `branchTimeout` helpers. Enhance parallel node with `Promise.all`. Add merge node strategies. Pass `results` and `pipeline` to node executors that need them. |
+| `packages/core/src/index.ts`                                 | Task 7    | Export expression evaluator and dry-run types/functions                                                                                                                                                                                                                               |
+| `packages/server/src/validation/schemas.ts`                  | Task 8    | Add `dryRunSchema` Zod schema                                                                                                                                                                                                                                                         |
+| `packages/server/src/routes/runs.ts`                         | Task 8    | Add `POST /dry-run` endpoint                                                                                                                                                                                                                                                          |
+| `apps/dashboard/src/components/canvas/execution-toolbar.tsx` | Task 9    | Add Preview button, loading state, result summary badge, clear button                                                                                                                                                                                                                 |
+| `apps/dashboard/src/components/canvas/pipeline-canvas.tsx`   | Task 9    | Accept `agentId` prop, wire `useDryRun` hook, apply execution path highlighting and skipped node dimming via `nodeClassName`                                                                                                                                                          |
 
 ---
 

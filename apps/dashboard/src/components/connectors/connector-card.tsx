@@ -37,14 +37,9 @@ interface HealthDotProps {
 
 function HealthDot({ status }: HealthDotProps) {
   const colorClass =
-    status === "healthy"
-      ? "bg-green-500"
-      : status === "unhealthy"
-        ? "bg-red-500"
-        : "bg-gray-400";
+    status === "healthy" ? "bg-green-500" : status === "unhealthy" ? "bg-red-500" : "bg-gray-400";
 
-  const label =
-    status === "healthy" ? "Healthy" : status === "unhealthy" ? "Unhealthy" : "Unknown";
+  const label = status === "healthy" ? "Healthy" : status === "unhealthy" ? "Unhealthy" : "Unknown";
 
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" title={label}>
@@ -58,7 +53,9 @@ interface ConnectorCardProps {
   connector: Connector;
   onTest: (id: string) => Promise<{ success: boolean; message?: string }>;
   onDelete: (id: string) => Promise<void>;
-  onRefreshTools?: (id: string) => Promise<{ success: boolean; toolCount?: number; message?: string }>;
+  onRefreshTools?: (
+    id: string,
+  ) => Promise<{ success: boolean; toolCount?: number; message?: string }>;
 }
 
 export function ConnectorCard({ connector, onTest, onDelete, onRefreshTools }: ConnectorCardProps) {
@@ -88,9 +85,7 @@ export function ConnectorCard({ connector, onTest, onDelete, onRefreshTools }: C
 
   // Extract MCP-specific config values
   const mcpConnected = isMcp ? connector.enabled : undefined;
-  const mcpToolCount = isMcp
-    ? (connector.config?.toolCount as number | undefined)
-    : undefined;
+  const mcpToolCount = isMcp ? (connector.config?.toolCount as number | undefined) : undefined;
 
   const handleTest = async () => {
     setIsTesting(true);

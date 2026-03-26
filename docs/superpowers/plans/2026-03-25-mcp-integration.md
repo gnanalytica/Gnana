@@ -50,10 +50,7 @@
 
   export class MCPClient {
     private client: Client;
-    private transport:
-      | StdioClientTransport
-      | StreamableHTTPClientTransport
-      | null = null;
+    private transport: StdioClientTransport | StreamableHTTPClientTransport | null = null;
     private tools: ToolDefinition[] = [];
     private config: MCPServerConfig;
     private _status: MCPClientStatus = {
@@ -86,8 +83,7 @@
         this.retryCount = 0;
       } catch (err) {
         this._status.connected = false;
-        this._status.error =
-          err instanceof Error ? err.message : String(err);
+        this._status.error = err instanceof Error ? err.message : String(err);
         throw err;
       }
     }
@@ -113,8 +109,7 @@
 
       for (let attempt = 1; attempt <= MCPClient.MAX_RETRIES; attempt++) {
         this.retryCount = attempt;
-        const delay =
-          MCPClient.RETRY_BASE_MS * Math.pow(2, attempt - 1);
+        const delay = MCPClient.RETRY_BASE_MS * Math.pow(2, attempt - 1);
         await sleep(delay);
         try {
           await this.connect();
@@ -155,18 +150,14 @@
      */
     async callTool(toolName: string, input: unknown): Promise<string> {
       if (!this._status.connected) {
-        throw new Error(
-          `MCP server "${this.config.name}" is not connected`,
-        );
+        throw new Error(`MCP server "${this.config.name}" is not connected`);
       }
       const result = await this.client.callTool({
         name: toolName,
         arguments: input as Record<string, unknown>,
       });
       // MCP results contain a content array — extract text parts
-      const parts = (
-        result.content as Array<{ type: string; text?: string }>
-      )
+      const parts = (result.content as Array<{ type: string; text?: string }>)
         .filter((c) => c.type === "text" && c.text)
         .map((c) => c.text!);
       return parts.join("\n") || JSON.stringify(result.content);
@@ -174,14 +165,10 @@
 
     // ---- Private ----
 
-    private createTransport():
-      | StdioClientTransport
-      | StreamableHTTPClientTransport {
+    private createTransport(): StdioClientTransport | StreamableHTTPClientTransport {
       if (this.config.transport === "stdio") {
         if (!this.config.command) {
-          throw new Error(
-            `MCP server "${this.config.name}": stdio transport requires a command`,
-          );
+          throw new Error(`MCP server "${this.config.name}": stdio transport requires a command`);
         }
         return new StdioClientTransport({
           command: this.config.command,
@@ -191,17 +178,11 @@
       }
       if (this.config.transport === "http") {
         if (!this.config.url) {
-          throw new Error(
-            `MCP server "${this.config.name}": HTTP transport requires a url`,
-          );
+          throw new Error(`MCP server "${this.config.name}": HTTP transport requires a url`);
         }
-        return new StreamableHTTPClientTransport(
-          new URL(this.config.url),
-        );
+        return new StreamableHTTPClientTransport(new URL(this.config.url));
       }
-      throw new Error(
-        `Unsupported MCP transport: ${this.config.transport}`,
-      );
+      throw new Error(`Unsupported MCP transport: ${this.config.transport}`);
     }
 
     /** Call tools/list and convert MCP tool schemas to ToolDefinition[]. */
@@ -282,10 +263,7 @@
     private configs = new Map<string, MCPServerConfig>();
 
     /** Start a connection to an MCP server. */
-    async startServer(
-      serverId: string,
-      config: MCPServerConfig,
-    ): Promise<void> {
+    async startServer(serverId: string, config: MCPServerConfig): Promise<void> {
       // Stop existing connection if any
       if (this.clients.has(serverId)) {
         await this.stopServer(serverId);
@@ -464,9 +442,7 @@
     mcpServerIds: string[];
   }
 
-  export async function resolveTools(
-    opts: ResolveToolsOptions,
-  ): Promise<ToolExecutorImpl> {
+  export async function resolveTools(opts: ResolveToolsOptions): Promise<ToolExecutorImpl> {
     const executor = new ToolExecutorImpl();
 
     // Load MCP tools — connect on-demand if needed
@@ -475,20 +451,13 @@
 
       if (!status || !status.connected) {
         // Server not connected — try to start it
-        const config = await loadMCPServerConfig(
-          opts.db,
-          serverId,
-          opts.workspaceId,
-        );
+        const config = await loadMCPServerConfig(opts.db, serverId, opts.workspaceId);
         if (config) {
           try {
             await opts.mcpManager.startServer(serverId, config);
           } catch (err) {
             // Log warning but don't fail the whole run — graceful degradation
-            console.warn(
-              `Failed to connect MCP server ${serverId}:`,
-              err,
-            );
+            console.warn(`Failed to connect MCP server ${serverId}:`, err);
             continue;
           }
         } else {
@@ -528,8 +497,7 @@
 
     const config = connector.config as Record<string, unknown>;
     return {
-      name:
-        (config.serverName as string) || connector.name,
+      name: (config.serverName as string) || connector.name,
       transport: config.transport as "stdio" | "http",
       command: config.command as string | undefined,
       args: config.args as string[] | undefined,
@@ -540,7 +508,6 @@
   ```
 
 - [ ] Modify `packages/server/src/routes/connectors.ts` to add MCP-specific endpoints. Add the `MCPClient` import and the `MCPManager` parameter to the route factory. The modified file should:
-
   1. Change the function signature to accept `mcpManager`:
 
      ```typescript
@@ -605,17 +572,11 @@
        const result = await db
          .select()
          .from(connectors)
-         .where(
-           and(
-             eq(connectors.id, id),
-             eq(connectors.workspaceId, workspaceId),
-           ),
-         )
+         .where(and(eq(connectors.id, id), eq(connectors.workspaceId, workspaceId)))
          .limit(1);
 
        const connector = result[0];
-       if (!connector)
-         return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
+       if (!connector) return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
        if (connector.type !== "mcp") {
          return c.json(
            {
@@ -652,9 +613,7 @@
          await testClient.disconnect();
 
          // Delete existing tool rows for this connector
-         await db
-           .delete(connectorTools)
-           .where(eq(connectorTools.connectorId, id));
+         await db.delete(connectorTools).where(eq(connectorTools.connectorId, id));
 
          // Insert new tool rows
          if (tools.length > 0) {
@@ -700,17 +659,11 @@
        const result = await db
          .select({ id: connectors.id, type: connectors.type })
          .from(connectors)
-         .where(
-           and(
-             eq(connectors.id, id),
-             eq(connectors.workspaceId, workspaceId),
-           ),
-         )
+         .where(and(eq(connectors.id, id), eq(connectors.workspaceId, workspaceId)))
          .limit(1);
 
        const connector = result[0];
-       if (!connector)
-         return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
+       if (!connector) return errorResponse(c, 404, "NOT_FOUND", "Connector not found");
 
        if (connector.type !== "mcp") {
          return c.json({
@@ -741,7 +694,6 @@
      ```
 
 - [ ] Modify `packages/server/src/index.ts` to instantiate MCPManager, pass it to connector routes, and wire up shutdown. Make these changes:
-
   1. Add the import at the top of the file:
 
      ```typescript
@@ -926,19 +878,13 @@
     inline = false,
     onChange,
   }: MCPConfigFormProps) {
-    const [serverName, setServerName] = useState(
-      initialConfig?.serverName ?? "",
-    );
+    const [serverName, setServerName] = useState(initialConfig?.serverName ?? "");
     const [transport, setTransport] = useState<"stdio" | "http">(
       initialConfig?.transport ?? "http",
     );
     const [url, setUrl] = useState(initialConfig?.url ?? "");
-    const [command, setCommand] = useState(
-      initialConfig?.command ?? "",
-    );
-    const [argsText, setArgsText] = useState(
-      initialConfig?.args?.join("\n") ?? "",
-    );
+    const [command, setCommand] = useState(initialConfig?.command ?? "");
+    const [argsText, setArgsText] = useState(initialConfig?.args?.join("\n") ?? "");
     const [envText, setEnvText] = useState(
       initialConfig?.env
         ? Object.entries(initialConfig.env)
@@ -948,8 +894,7 @@
     );
     const [isTesting, setIsTesting] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [testResult, setTestResult] =
-      useState<MCPTestResult | null>(null);
+    const [testResult, setTestResult] = useState<MCPTestResult | null>(null);
 
     const buildConfig = (): MCPConfigFormData => {
       const args =
@@ -965,12 +910,7 @@
               .split("\n")
               .map((line) => {
                 const idx = line.indexOf("=");
-                return idx > 0
-                  ? [
-                      line.slice(0, idx).trim(),
-                      line.slice(idx + 1).trim(),
-                    ]
-                  : null;
+                return idx > 0 ? [line.slice(0, idx).trim(), line.slice(idx + 1).trim()] : null;
               })
               .filter(Boolean) as [string, string][],
           )
@@ -1001,8 +941,7 @@
       } catch (err) {
         setTestResult({
           success: false,
-          message:
-            err instanceof Error ? err.message : "Test failed",
+          message: err instanceof Error ? err.message : "Test failed",
         });
       } finally {
         setIsTesting(false);
@@ -1021,9 +960,7 @@
 
     const isValid =
       serverName.trim().length > 0 &&
-      (transport === "http"
-        ? url.trim().length > 0
-        : command.trim().length > 0);
+      (transport === "http" ? url.trim().length > 0 : command.trim().length > 0);
 
     return (
       <div className="space-y-4">
@@ -1056,12 +993,8 @@
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="http">
-                HTTP (Streamable HTTP)
-              </SelectItem>
-              <SelectItem value="stdio">
-                Stdio (local process)
-              </SelectItem>
+              <SelectItem value="http">HTTP (Streamable HTTP)</SelectItem>
+              <SelectItem value="stdio">Stdio (local process)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -1096,9 +1029,7 @@
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mcp-args">
-                Arguments (one per line)
-              </Label>
+              <Label htmlFor="mcp-args">Arguments (one per line)</Label>
               <Textarea
                 id="mcp-args"
                 placeholder="/path/to/allowed/directory"
@@ -1114,9 +1045,7 @@
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="mcp-env">
-            Environment Variables (KEY=VALUE, one per line)
-          </Label>
+          <Label htmlFor="mcp-env">Environment Variables (KEY=VALUE, one per line)</Label>
           <Textarea
             id="mcp-env"
             placeholder={"API_KEY=sk-123\nDEBUG=true"}
@@ -1143,22 +1072,15 @@
               ) : (
                 <XCircle className="h-4 w-4" />
               )}
-              <span className="font-medium">
-                {testResult.message}
-              </span>
+              <span className="font-medium">{testResult.message}</span>
             </div>
             {testResult.tools && testResult.tools.length > 0 && (
               <div className="mt-2 space-y-1">
-                <p className="text-xs font-medium">
-                  Discovered tools:
-                </p>
+                <p className="text-xs font-medium">Discovered tools:</p>
                 <ul className="text-xs space-y-0.5 ml-4 list-disc">
                   {testResult.tools.map((tool) => (
                     <li key={tool.name}>
-                      <span className="font-mono">
-                        {tool.name}
-                      </span>{" "}
-                      — {tool.description}
+                      <span className="font-mono">{tool.name}</span> — {tool.description}
                     </li>
                   ))}
                 </ul>
@@ -1170,11 +1092,7 @@
         {!inline && (
           <div className="flex gap-2">
             {onTest && (
-              <Button
-                variant="outline"
-                onClick={handleTest}
-                disabled={!isValid || isTesting}
-              >
+              <Button variant="outline" onClick={handleTest} disabled={!isValid || isTesting}>
                 {isTesting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1186,10 +1104,7 @@
               </Button>
             )}
             {onSave && (
-              <Button
-                onClick={handleSave}
-                disabled={!isValid || isSaving}
-              >
+              <Button onClick={handleSave} disabled={!isValid || isSaving}>
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1208,7 +1123,6 @@
   ```
 
 - [ ] Modify `apps/dashboard/src/components/connectors/install-dialog.tsx` to enhance the MCP section with server name, args, and env fields. Make the following changes:
-
   1. Add new state variables for MCP fields after the existing `mcpUrl` state:
 
      ```typescript
@@ -1239,81 +1153,83 @@
   4. Replace the MCP Server Fields section (`{app.id === "mcp-server" && (...)}`) with the enhanced version:
 
      ```tsx
-     {/* MCP Server Fields */}
-     {app.id === "mcp-server" && (
-       <>
-         <div className="space-y-2">
-           <Label htmlFor="mcp-name">Server Name</Label>
-           <Input
-             id="mcp-name"
-             placeholder="filesystem"
-             value={mcpName}
-             onChange={(e) => setMcpName(e.target.value)}
-           />
-           <p className="text-xs text-muted-foreground">
-             Used for tool namespacing: mcp_name_toolName
-           </p>
-         </div>
-         <div className="space-y-2">
-           <Label>Transport</Label>
-           <Select value={mcpTransport} onValueChange={setMcpTransport}>
-             <SelectTrigger>
-               <SelectValue />
-             </SelectTrigger>
-             <SelectContent>
-               <SelectItem value="http">HTTP (Streamable HTTP)</SelectItem>
-               <SelectItem value="stdio">Stdio (local process)</SelectItem>
-             </SelectContent>
-           </Select>
-         </div>
-         {mcpTransport === "http" && (
+     {
+       /* MCP Server Fields */
+     }
+     {
+       app.id === "mcp-server" && (
+         <>
            <div className="space-y-2">
-             <Label htmlFor="mcp-url">Server URL</Label>
+             <Label htmlFor="mcp-name">Server Name</Label>
              <Input
-               id="mcp-url"
-               placeholder="http://localhost:3001/mcp"
-               value={mcpUrl}
-               onChange={(e) => setMcpUrl(e.target.value)}
+               id="mcp-name"
+               placeholder="filesystem"
+               value={mcpName}
+               onChange={(e) => setMcpName(e.target.value)}
+             />
+             <p className="text-xs text-muted-foreground">
+               Used for tool namespacing: mcp_name_toolName
+             </p>
+           </div>
+           <div className="space-y-2">
+             <Label>Transport</Label>
+             <Select value={mcpTransport} onValueChange={setMcpTransport}>
+               <SelectTrigger>
+                 <SelectValue />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="http">HTTP (Streamable HTTP)</SelectItem>
+                 <SelectItem value="stdio">Stdio (local process)</SelectItem>
+               </SelectContent>
+             </Select>
+           </div>
+           {mcpTransport === "http" && (
+             <div className="space-y-2">
+               <Label htmlFor="mcp-url">Server URL</Label>
+               <Input
+                 id="mcp-url"
+                 placeholder="http://localhost:3001/mcp"
+                 value={mcpUrl}
+                 onChange={(e) => setMcpUrl(e.target.value)}
+               />
+             </div>
+           )}
+           {mcpTransport === "stdio" && (
+             <>
+               <div className="space-y-2">
+                 <Label htmlFor="mcp-command">Command</Label>
+                 <Input
+                   id="mcp-command"
+                   placeholder="npx @modelcontextprotocol/server-filesystem"
+                   value={mcpCommand}
+                   onChange={(e) => setMcpCommand(e.target.value)}
+                 />
+               </div>
+               <div className="space-y-2">
+                 <Label htmlFor="mcp-args">Arguments (one per line)</Label>
+                 <Textarea
+                   id="mcp-args"
+                   placeholder="/path/to/allowed/directory"
+                   value={mcpArgs}
+                   onChange={(e) => setMcpArgs(e.target.value)}
+                   rows={3}
+                 />
+               </div>
+             </>
+           )}
+           <div className="space-y-2">
+             <Label htmlFor="mcp-env">Environment Variables (KEY=VALUE, one per line)</Label>
+             <Textarea
+               id="mcp-env"
+               placeholder={"API_KEY=sk-123\nDEBUG=true"}
+               value={mcpEnv}
+               onChange={(e) => setMcpEnv(e.target.value)}
+               rows={3}
              />
            </div>
-         )}
-         {mcpTransport === "stdio" && (
-           <>
-             <div className="space-y-2">
-               <Label htmlFor="mcp-command">Command</Label>
-               <Input
-                 id="mcp-command"
-                 placeholder="npx @modelcontextprotocol/server-filesystem"
-                 value={mcpCommand}
-                 onChange={(e) => setMcpCommand(e.target.value)}
-               />
-             </div>
-             <div className="space-y-2">
-               <Label htmlFor="mcp-args">Arguments (one per line)</Label>
-               <Textarea
-                 id="mcp-args"
-                 placeholder="/path/to/allowed/directory"
-                 value={mcpArgs}
-                 onChange={(e) => setMcpArgs(e.target.value)}
-                 rows={3}
-               />
-             </div>
-           </>
-         )}
-         <div className="space-y-2">
-           <Label htmlFor="mcp-env">
-             Environment Variables (KEY=VALUE, one per line)
-           </Label>
-           <Textarea
-             id="mcp-env"
-             placeholder={"API_KEY=sk-123\nDEBUG=true"}
-             value={mcpEnv}
-             onChange={(e) => setMcpEnv(e.target.value)}
-             rows={3}
-           />
-         </div>
-       </>
-     )}
+         </>
+       );
+     }
      ```
 
   5. Replace the `mcp-server` case in `buildPayload()`:
@@ -1370,7 +1286,6 @@
      ```
 
 - [ ] Modify `apps/dashboard/src/lib/hooks/use-connectors.ts` to add `refreshTools` and `getStatus` methods:
-
   1. Add these functions inside `useConnectors()`, after `testConnector`:
 
      ```typescript
@@ -1412,7 +1327,6 @@
      ```
 
 - [ ] Modify `apps/dashboard/src/components/connectors/connector-card.tsx` to show MCP-specific status information. Make the following changes:
-
   1. Add new imports and props:
 
      ```typescript
@@ -1489,66 +1403,59 @@
   4. In the JSX, add MCP status display between the status badge area and the `<CardContent>`. Add this inside `<CardContent>` before the test result display:
 
      ```tsx
-     {connector.type === "mcp" && mcpStatus && (
-       <div className="mb-3 space-y-1">
-         <div className="flex items-center gap-2 text-xs">
-           {mcpStatus.connected ? (
-             <>
-               <Wifi className="h-3 w-3 text-green-500" />
-               <span className="text-green-700 dark:text-green-400">
-                 Connected
-               </span>
-             </>
-           ) : (
-             <>
-               <WifiOff className="h-3 w-3 text-muted-foreground" />
-               <span className="text-muted-foreground">Disconnected</span>
-             </>
+     {
+       connector.type === "mcp" && mcpStatus && (
+         <div className="mb-3 space-y-1">
+           <div className="flex items-center gap-2 text-xs">
+             {mcpStatus.connected ? (
+               <>
+                 <Wifi className="h-3 w-3 text-green-500" />
+                 <span className="text-green-700 dark:text-green-400">Connected</span>
+               </>
+             ) : (
+               <>
+                 <WifiOff className="h-3 w-3 text-muted-foreground" />
+                 <span className="text-muted-foreground">Disconnected</span>
+               </>
+             )}
+             <span className="text-muted-foreground">
+               {mcpStatus.toolCount} tool{mcpStatus.toolCount !== 1 ? "s" : ""}
+             </span>
+           </div>
+           {mcpStatus.error && <p className="text-xs text-destructive">{mcpStatus.error}</p>}
+           {mcpStatus.lastConnected && (
+             <p className="text-xs text-muted-foreground">
+               Last connected: {new Date(mcpStatus.lastConnected).toLocaleString()}
+             </p>
            )}
-           <span className="text-muted-foreground">
-             {mcpStatus.toolCount} tool{mcpStatus.toolCount !== 1 ? "s" : ""}
-           </span>
          </div>
-         {mcpStatus.error && (
-           <p className="text-xs text-destructive">{mcpStatus.error}</p>
-         )}
-         {mcpStatus.lastConnected && (
-           <p className="text-xs text-muted-foreground">
-             Last connected:{" "}
-             {new Date(mcpStatus.lastConnected).toLocaleString()}
-           </p>
-         )}
-       </div>
-     )}
+       );
+     }
      ```
 
   5. Add a "Refresh Tools" button in the button row for MCP connectors:
 
      ```tsx
-     {connector.type === "mcp" && onRefreshTools && (
-       <Button
-         variant="outline"
-         size="sm"
-         onClick={handleRefresh}
-         disabled={isRefreshing}
-       >
-         {isRefreshing ? (
-           <>
-             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-             Refreshing...
-           </>
-         ) : (
-           <>
-             <RefreshCw className="mr-1 h-3 w-3" />
-             Refresh Tools
-           </>
-         )}
-       </Button>
-     )}
+     {
+       connector.type === "mcp" && onRefreshTools && (
+         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+           {isRefreshing ? (
+             <>
+               <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+               Refreshing...
+             </>
+           ) : (
+             <>
+               <RefreshCw className="mr-1 h-3 w-3" />
+               Refresh Tools
+             </>
+           )}
+         </Button>
+       );
+     }
      ```
 
 - [ ] Modify `apps/dashboard/src/app/(dashboard)/connectors/page.tsx` to pass the new callbacks to `ConnectorCard`:
-
   1. Destructure the new methods from `useConnectors`:
 
      ```typescript

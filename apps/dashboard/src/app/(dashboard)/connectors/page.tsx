@@ -9,7 +9,8 @@ import { ConnectorCard } from "@/components/connectors/connector-card";
 import { useConnectors } from "@/lib/hooks/use-connectors";
 
 export default function ConnectorsPage() {
-  const { connectors, isLoading, error, deleteConnector, testConnector, refreshTools } = useConnectors();
+  const { connectors, isLoading, error, deleteConnector, testConnector, refreshTools } =
+    useConnectors();
 
   if (error) {
     return (

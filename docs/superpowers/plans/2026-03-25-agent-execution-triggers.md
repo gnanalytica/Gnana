@@ -34,10 +34,7 @@
     constructor(private db: Database) {}
 
     async updateStatus(runId: string, status: string): Promise<void> {
-      await this.db
-        .update(runs)
-        .set({ status, updatedAt: new Date() })
-        .where(eq(runs.id, runId));
+      await this.db.update(runs).set({ status, updatedAt: new Date() }).where(eq(runs.id, runId));
     }
 
     async updateNodeResult(runId: string, nodeId: string, result: unknown): Promise<void> {
@@ -70,10 +67,7 @@
     }
 
     async updateError(runId: string, error: string): Promise<void> {
-      await this.db
-        .update(runs)
-        .set({ error, updatedAt: new Date() })
-        .where(eq(runs.id, runId));
+      await this.db.update(runs).set({ error, updatedAt: new Date() }).where(eq(runs.id, runId));
     }
   }
   ```
@@ -121,10 +115,8 @@
   const PROVIDER_FACTORIES: Record<string, (apiKey: string, baseUrl?: string) => LLMProvider> = {
     anthropic: (key) => new AnthropicProvider(key),
     google: (key) => new GoogleProvider(key),
-    openai: (key, baseUrl) =>
-      new OpenAIProvider(key, baseUrl ? { baseURL: baseUrl } : undefined),
-    openrouter: (key) =>
-      new OpenAIProvider(key, { baseURL: "https://openrouter.ai/api/v1" }),
+    openai: (key, baseUrl) => new OpenAIProvider(key, baseUrl ? { baseURL: baseUrl } : undefined),
+    openrouter: (key) => new OpenAIProvider(key, { baseURL: "https://openrouter.ai/api/v1" }),
   };
 
   export async function resolveProviders(
@@ -170,9 +162,7 @@
     }
 
     if (providerMap.size === 0) {
-      throw new Error(
-        "No LLM providers available. Configure workspace providers or set env vars.",
-      );
+      throw new Error("No LLM providers available. Configure workspace providers or set env vars.");
     }
 
     // 4. Build RouterConfig from agent's llmConfig
@@ -255,12 +245,13 @@
           apiKey?: string;
         },
         defaultHeaders: creds.defaultHeaders as Record<string, string>,
-        endpoints: (config.endpoints as {
-          name: string;
-          description: string;
-          method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-          path: string;
-        }[]) ?? [],
+        endpoints:
+          (config.endpoints as {
+            name: string;
+            description: string;
+            method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+            path: string;
+          }[]) ?? [],
       }) as unknown as ToolDefinition[],
   };
 
@@ -289,18 +280,13 @@
       );
 
     // Build lookup: connectorId -> { tools?: string[] }
-    const configByConnector = new Map(
-      toolsConfig.connectors.map((c) => [c.connectorId, c]),
-    );
+    const configByConnector = new Map(toolsConfig.connectors.map((c) => [c.connectorId, c]));
 
     // 2. For each connector, instantiate tools
     for (const row of rows) {
       const factory = CONNECTOR_FACTORIES[row.type];
       if (!factory) {
-        jobLog.warn(
-          { connectorId: row.id, type: row.type },
-          "Unknown connector type, skipping",
-        );
+        jobLog.warn({ connectorId: row.id, type: row.type }, "Unknown connector type, skipping");
         continue;
       }
 
@@ -369,11 +355,7 @@
       jobLog.info({ runId, agentId }, "run:execute started");
 
       // 1. Load agent
-      const agentRows = await db
-        .select()
-        .from(agents)
-        .where(eq(agents.id, agentId))
-        .limit(1);
+      const agentRows = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1);
       const agent = agentRows[0];
       if (!agent) {
         await markFailed(db, events, runId, "Agent not found");
@@ -446,11 +428,7 @@
       jobLog.info({ runId, agentId }, "run:resume started");
 
       // 1. Load agent
-      const agentRows = await db
-        .select()
-        .from(agents)
-        .where(eq(agents.id, agentId))
-        .limit(1);
+      const agentRows = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1);
       const agent = agentRows[0];
       if (!agent) {
         await markFailed(db, events, runId, "Agent not found");
@@ -634,10 +612,7 @@
     }
 
     // 2. Update status to approved
-    await db
-      .update(runs)
-      .set({ status: "approved", updatedAt: new Date() })
-      .where(eq(runs.id, id));
+    await db.update(runs).set({ status: "approved", updatedAt: new Date() }).where(eq(runs.id, id));
     await events.emit("run:approved", { runId: id });
 
     // 3. Enqueue a resume job
@@ -721,9 +696,7 @@
         }
 
         const rawBody = await c.req.text();
-        const expected = createHmac("sha256", webhookTrigger.secret)
-          .update(rawBody)
-          .digest("hex");
+        const expected = createHmac("sha256", webhookTrigger.secret).update(rawBody).digest("hex");
 
         const expectedBuf = Buffer.from(`sha256=${expected}`, "utf8");
         const receivedBuf = Buffer.from(signature, "utf8");
@@ -806,11 +779,13 @@
 - [ ] Add dependencies to `packages/server/package.json`:
 
   In `dependencies`:
+
   ```json
   "node-cron": "^3.0.3"
   ```
 
   In `devDependencies`:
+
   ```json
   "@types/node-cron": "^3.0.11"
   ```
@@ -1091,20 +1066,20 @@ After all waves are complete:
 
 ## Summary of All Files
 
-| Wave | Task | Action | File | Description |
-|------|------|--------|------|-------------|
-| 1 | 1A | Create | `packages/server/src/execution/dag-run-store.ts` | `DrizzleDAGRunStore` implementing `DAGRunStore` interface |
-| 1 | 1B | Modify | `packages/server/package.json` | Add `@gnana/provider-*` workspace deps |
-| 1 | 1B | Create | `packages/server/src/execution/resolve-providers.ts` | Load providers, decrypt keys, build `LLMRouterImpl` |
-| 1 | 1C | Modify | `packages/server/package.json` | Add `@gnana/connector-*` workspace deps |
-| 1 | 1C | Create | `packages/server/src/execution/resolve-tools.ts` | Load connectors, decrypt creds, build `ToolExecutorImpl` |
-| 2 | 2A | Create | `packages/server/src/execution/run-handler.ts` | `createRunHandler` + `createResumeHandler` composing Wave 1 modules |
-| 2 | 2A | Modify | `packages/server/src/index.ts` | Replace stub, register handlers, add log persistence |
-| 3 | 3A | Modify | `packages/server/src/routes/runs.ts` | Add `POST /:id/resume` endpoint |
-| 3 | 3B | Create | `packages/server/src/triggers/webhook-route.ts` | `POST /api/webhooks/:agentId` Hono route |
-| 3 | 3B | Modify | `packages/server/src/index.ts` | Mount webhook route |
-| 3 | 3C | Modify | `packages/server/package.json` | Add `node-cron` + `@types/node-cron` |
-| 3 | 3C | Create | `packages/server/src/triggers/cron-manager.ts` | `CronManager` class using `node-cron` |
-| 3 | 3C | Modify | `packages/server/src/index.ts` | Instantiate and start CronManager |
-| 3 | 3C | Modify | `packages/server/src/routes/agents.ts` | Accept `CronManager`, reload on update |
-| 3 | 3D | Modify | `packages/server/src/job-queue.ts` | Retry with backoff for failed jobs |
+| Wave | Task | Action | File                                                 | Description                                                         |
+| ---- | ---- | ------ | ---------------------------------------------------- | ------------------------------------------------------------------- |
+| 1    | 1A   | Create | `packages/server/src/execution/dag-run-store.ts`     | `DrizzleDAGRunStore` implementing `DAGRunStore` interface           |
+| 1    | 1B   | Modify | `packages/server/package.json`                       | Add `@gnana/provider-*` workspace deps                              |
+| 1    | 1B   | Create | `packages/server/src/execution/resolve-providers.ts` | Load providers, decrypt keys, build `LLMRouterImpl`                 |
+| 1    | 1C   | Modify | `packages/server/package.json`                       | Add `@gnana/connector-*` workspace deps                             |
+| 1    | 1C   | Create | `packages/server/src/execution/resolve-tools.ts`     | Load connectors, decrypt creds, build `ToolExecutorImpl`            |
+| 2    | 2A   | Create | `packages/server/src/execution/run-handler.ts`       | `createRunHandler` + `createResumeHandler` composing Wave 1 modules |
+| 2    | 2A   | Modify | `packages/server/src/index.ts`                       | Replace stub, register handlers, add log persistence                |
+| 3    | 3A   | Modify | `packages/server/src/routes/runs.ts`                 | Add `POST /:id/resume` endpoint                                     |
+| 3    | 3B   | Create | `packages/server/src/triggers/webhook-route.ts`      | `POST /api/webhooks/:agentId` Hono route                            |
+| 3    | 3B   | Modify | `packages/server/src/index.ts`                       | Mount webhook route                                                 |
+| 3    | 3C   | Modify | `packages/server/package.json`                       | Add `node-cron` + `@types/node-cron`                                |
+| 3    | 3C   | Create | `packages/server/src/triggers/cron-manager.ts`       | `CronManager` class using `node-cron`                               |
+| 3    | 3C   | Modify | `packages/server/src/index.ts`                       | Instantiate and start CronManager                                   |
+| 3    | 3C   | Modify | `packages/server/src/routes/agents.ts`               | Accept `CronManager`, reload on update                              |
+| 3    | 3D   | Modify | `packages/server/src/job-queue.ts`                   | Retry with backoff for failed jobs                                  |

@@ -31,16 +31,16 @@ Validate that the stored API key works by instantiating the provider and calling
 // Response 200:
 interface TestResult {
   ok: true;
-  provider: string;     // "anthropic"
-  modelCount: number;   // number of models returned
-  latencyMs: number;    // round-trip time
+  provider: string; // "anthropic"
+  modelCount: number; // number of models returned
+  latencyMs: number; // round-trip time
 }
 
 // Response 200 (failure — not 500, the test itself ran fine):
 interface TestResult {
   ok: false;
   provider: string;
-  error: string;        // "Invalid API key" / "Network error" / etc.
+  error: string; // "Invalid API key" / "Network error" / etc.
 }
 ```
 
@@ -208,6 +208,7 @@ Generate and apply migration via `pnpm --filter @gnana/db db:generate && pnpm --
 Full rewrite of the current stub. The page has three states:
 
 **Empty state** (no providers configured):
+
 ```
 ┌─────────────────────────────────────────────────┐
 │  ⚠ No LLM providers configured                 │
@@ -221,6 +222,7 @@ Full rewrite of the current stub. The page has three states:
 ```
 
 **Provider list** (one or more providers):
+
 ```
 ┌─────────────────────────────────────────────────┐
 │  Providers                    [ + Add Provider ] │
@@ -263,7 +265,7 @@ interface ProviderRow {
   id: string;
   name: string;
   type: "anthropic" | "google" | "openai" | "openrouter";
-  apiKey: string;          // Masked: "********************ab3f"
+  apiKey: string; // Masked: "********************ab3f"
   baseUrl?: string;
   config: Record<string, unknown>;
   enabled: boolean;
@@ -289,6 +291,7 @@ Card layout uses shadcn `Card` component:
   - Delete — confirmation dialog, then `DELETE /:id`
 
 **Provider type icons**: Use simple text/emoji indicators or provider brand colors:
+
 - Anthropic: orange-brown accent
 - Google: blue accent
 - OpenAI: green accent
@@ -304,7 +307,7 @@ Reusable dialog for both "Add" and "Edit" modes.
 interface ProviderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  provider?: ProviderRow;         // If provided, edit mode; otherwise, add mode
+  provider?: ProviderRow; // If provided, edit mode; otherwise, add mode
   onSaved: (provider: ProviderRow) => void;
 }
 ```
@@ -357,6 +360,7 @@ interface ProviderFormDialogProps {
 7. **isDefault checkbox**: "Set as default provider"
 
 **For new providers (add mode)**: The test flow requires the key to be saved first (since `/test` operates on stored providers). Two approaches:
+
 - **Option A (recommended)**: Add a `POST /api/providers/test` endpoint that accepts `{ type, apiKey, baseUrl }` in the request body and tests without saving. This allows testing before committing.
 - **Option B**: Save first as disabled, test, then enable.
 
@@ -450,6 +454,7 @@ Available Models (3)
 ```
 
 Each row shows:
+
 - Model ID (monospace, copyable)
 - Display name + context window + max output tokens (where available)
 
@@ -470,32 +475,32 @@ Simple list using shadcn `Card` or a plain `div` with borders. Show skeleton row
 
 ### Modify
 
-| File | Changes |
-|------|---------|
-| `packages/server/src/routes/providers.ts` | Add `POST /:id/test`, `POST /test`, `GET /:id/models`, `PUT /:id`, `PUT /:id/default` endpoints. Import `decrypt` and provider classes. Update list endpoint to mask keys with last 4 chars and filter disabled by default. |
-| `packages/server/src/validation/schemas.ts` | Add `"openrouter"` to type enum. Add `updateProviderSchema`. Add `isDefault` field. |
-| `packages/db/src/schema.ts` | Add `isDefault` column to providers table. |
-| `apps/dashboard/src/app/(dashboard)/settings/providers/page.tsx` | Full rewrite: replace placeholder data with API calls, render ProviderCard list, empty state, loading state, wire up Add Provider dialog. |
+| File                                                             | Changes                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/server/src/routes/providers.ts`                        | Add `POST /:id/test`, `POST /test`, `GET /:id/models`, `PUT /:id`, `PUT /:id/default` endpoints. Import `decrypt` and provider classes. Update list endpoint to mask keys with last 4 chars and filter disabled by default. |
+| `packages/server/src/validation/schemas.ts`                      | Add `"openrouter"` to type enum. Add `updateProviderSchema`. Add `isDefault` field.                                                                                                                                         |
+| `packages/db/src/schema.ts`                                      | Add `isDefault` column to providers table.                                                                                                                                                                                  |
+| `apps/dashboard/src/app/(dashboard)/settings/providers/page.tsx` | Full rewrite: replace placeholder data with API calls, render ProviderCard list, empty state, loading state, wire up Add Provider dialog.                                                                                   |
 
 ### Create
 
-| File | Purpose |
-|------|---------|
-| `apps/dashboard/src/components/settings/provider-card.tsx` | Provider card component with status indicator, actions dropdown, default badge. |
+| File                                                              | Purpose                                                                            |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `apps/dashboard/src/components/settings/provider-card.tsx`        | Provider card component with status indicator, actions dropdown, default badge.    |
 | `apps/dashboard/src/components/settings/provider-form-dialog.tsx` | Add/Edit provider dialog with type selector, API key input, test connection, save. |
 
 ## 5. API Route Summary
 
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/providers` | viewer | List providers (masked keys, filter disabled) |
-| `POST` | `/api/providers` | admin | Create provider (encrypt key, optional isDefault) |
-| `PUT` | `/api/providers/:id` | admin | Update provider (re-encrypt key if changed) |
-| `DELETE` | `/api/providers/:id` | admin | Soft-delete provider |
-| `POST` | `/api/providers/:id/test` | admin | Test stored provider connection |
-| `POST` | `/api/providers/test` | admin | Test credentials without saving |
-| `GET` | `/api/providers/:id/models` | viewer | List available models for provider |
-| `PUT` | `/api/providers/:id/default` | admin | Set provider as workspace default |
+| Method   | Path                         | Role   | Description                                       |
+| -------- | ---------------------------- | ------ | ------------------------------------------------- |
+| `GET`    | `/api/providers`             | viewer | List providers (masked keys, filter disabled)     |
+| `POST`   | `/api/providers`             | admin  | Create provider (encrypt key, optional isDefault) |
+| `PUT`    | `/api/providers/:id`         | admin  | Update provider (re-encrypt key if changed)       |
+| `DELETE` | `/api/providers/:id`         | admin  | Soft-delete provider                              |
+| `POST`   | `/api/providers/:id/test`    | admin  | Test stored provider connection                   |
+| `POST`   | `/api/providers/test`        | admin  | Test credentials without saving                   |
+| `GET`    | `/api/providers/:id/models`  | viewer | List available models for provider                |
+| `PUT`    | `/api/providers/:id/default` | admin  | Set provider as workspace default                 |
 
 ## 6. Edge Cases
 

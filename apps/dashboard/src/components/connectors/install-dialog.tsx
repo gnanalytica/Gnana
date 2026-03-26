@@ -387,9 +387,7 @@ export function InstallDialog({ app, isOpen, onClose, onInstall }: InstallDialog
             )}
 
             {/* MCP Server Fields */}
-            {app.id === "mcp-server" && (
-              <MCPConfigForm inline onChange={setMcpConfig} />
-            )}
+            {app.id === "mcp-server" && <MCPConfigForm inline onChange={setMcpConfig} />}
 
             <Button
               onClick={handleConnect}

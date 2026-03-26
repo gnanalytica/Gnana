@@ -31,11 +31,11 @@ The Gnana platform has the foundation for multi-tenancy (workspaces, plans, usag
 
 These routes already apply the plan limit middleware:
 
-| Route | Middleware | File |
-|---|---|---|
-| `POST /agents` | `planLimit(db, "maxAgents", agents)` | `packages/server/src/routes/agents.ts:52` |
+| Route              | Middleware                                   | File                                          |
+| ------------------ | -------------------------------------------- | --------------------------------------------- |
+| `POST /agents`     | `planLimit(db, "maxAgents", agents)`         | `packages/server/src/routes/agents.ts:52`     |
 | `POST /connectors` | `planLimit(db, "maxConnectors", connectors)` | `packages/server/src/routes/connectors.ts:58` |
-| `POST /runs` | `planRunLimit(db)` | `packages/server/src/routes/runs.ts:59` |
+| `POST /runs`       | `planRunLimit(db)`                           | `packages/server/src/routes/runs.ts:59`       |
 
 ### Work Needed
 
@@ -53,7 +53,9 @@ app.post(
   "/:id/members",
   requireRole("admin"),
   planLimit(db, "maxMembers", workspaceMembers),
-  async (c) => { /* existing handler */ }
+  async (c) => {
+    /* existing handler */
+  },
 );
 ```
 
@@ -70,7 +72,11 @@ Add to the `run:execute` job handler in `packages/server/src/index.ts`, after a 
 // After the run completes, aggregate token usage into usage_records
 
 const completedRun = await db
-  .select({ inputTokens: runs.inputTokens, outputTokens: runs.outputTokens, workspaceId: runs.workspaceId })
+  .select({
+    inputTokens: runs.inputTokens,
+    outputTokens: runs.outputTokens,
+    workspaceId: runs.workspaceId,
+  })
   .from(runs)
   .where(eq(runs.id, runId))
   .limit(1);
@@ -129,12 +135,12 @@ const DEFAULT_PLANS = [
   {
     name: "pro",
     displayName: "Pro",
-    maxAgents: -1,        // unlimited
+    maxAgents: -1, // unlimited
     maxConnectors: 10,
     maxMembers: 10,
     maxRunsMonth: 1000,
-    priceMonthly: 2900,   // $29.00 in cents
-    priceYearly: 29000,   // $290.00 in cents
+    priceMonthly: 2900, // $29.00 in cents
+    priceYearly: 29000, // $290.00 in cents
     features: {
       communitySupport: true,
       customConnectors: true,
@@ -149,7 +155,7 @@ const DEFAULT_PLANS = [
     maxConnectors: -1,
     maxMembers: -1,
     maxRunsMonth: -1,
-    priceMonthly: 0,      // custom pricing
+    priceMonthly: 0, // custom pricing
     priceYearly: 0,
     features: {
       communitySupport: true,
@@ -216,10 +222,7 @@ Modify `packages/server/src/routes/workspaces.ts` -- in the `POST /` handler, af
 // Inside the transaction, after inserting the workspace
 const freePlan = await tx.select().from(plans).where(eq(plans.name, "free")).limit(1);
 if (freePlan[0]) {
-  await tx
-    .update(workspaces)
-    .set({ planId: freePlan[0].id })
-    .where(eq(workspaces.id, ws.id));
+  await tx.update(workspaces).set({ planId: freePlan[0].id }).where(eq(workspaces.id, ws.id));
 }
 ```
 
@@ -257,9 +260,18 @@ app.get("/:id/usage", requireRole("viewer"), async (c) => {
 
   // Count current resources
   const [agentCount, connectorCount, memberCount] = await Promise.all([
-    db.select({ count: sql<number>`count(*)::int` }).from(agents).where(eq(agents.workspaceId, workspaceId)),
-    db.select({ count: sql<number>`count(*)::int` }).from(connectors).where(eq(connectors.workspaceId, workspaceId)),
-    db.select({ count: sql<number>`count(*)::int` }).from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspaceId)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(agents)
+      .where(eq(agents.workspaceId, workspaceId)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(connectors)
+      .where(eq(connectors.workspaceId, workspaceId)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(workspaceMembers)
+      .where(eq(workspaceMembers.workspaceId, workspaceId)),
   ]);
 
   // Current month usage
@@ -278,12 +290,7 @@ app.get("/:id/usage", requireRole("viewer"), async (c) => {
   const usageHistory = await db
     .select()
     .from(usageRecords)
-    .where(
-      and(
-        eq(usageRecords.workspaceId, workspaceId),
-        gte(usageRecords.period, historyStart),
-      ),
-    )
+    .where(and(eq(usageRecords.workspaceId, workspaceId), gte(usageRecords.period, historyStart)))
     .orderBy(desc(usageRecords.period))
     .limit(6);
 
@@ -358,10 +365,10 @@ Replace the current stub page. Key changes:
 4. **Plan cards** -- keep the existing 3-plan card layout but highlight the actual current plan from the API response (not hardcoded `current: true` on Free).
 5. **Usage history table** -- below the plan cards, a simple table showing last 6 months:
 
-| Period | Runs | Tokens |
-|--------|------|--------|
-| 2026-03 | 42 | 15,340 |
-| 2026-02 | 87 | 31,200 |
+| Period  | Runs | Tokens |
+| ------- | ---- | ------ |
+| 2026-03 | 42   | 15,340 |
+| 2026-02 | 87   | 31,200 |
 
 6. **Upgrade CTA** -- non-current plan cards show "Upgrade" button. For now, this links to `mailto:sales@gnanalytica.com` or opens a Typeform/Cal.com link. No Stripe integration in this phase.
 
@@ -487,9 +494,7 @@ function redact(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 export async function logAudit(db: Database, entry: AuditEntry): Promise<void> {
-  const sanitizedChanges = entry.changes
-    ? redactChanges(entry.changes)
-    : undefined;
+  const sanitizedChanges = entry.changes ? redactChanges(entry.changes) : undefined;
 
   await db.insert(auditLogs).values({
     workspaceId: entry.workspaceId,
@@ -508,9 +513,7 @@ function redactChanges(changes: Record<string, unknown>): Record<string, unknown
   for (const [key, value] of Object.entries(changes)) {
     if (key === "before" || key === "after") {
       result[key] =
-        value && typeof value === "object"
-          ? redact(value as Record<string, unknown>)
-          : value;
+        value && typeof value === "object" ? redact(value as Record<string, unknown>) : value;
     } else {
       result[key] = value;
     }
@@ -558,23 +561,23 @@ logAudit(db, { ... }).catch((err) => {
 
 **Routes to instrument:**
 
-| File | Route | Action |
-|---|---|---|
-| `routes/agents.ts` | `POST /` | `agent.created` |
-| `routes/agents.ts` | `PUT /:id` | `agent.updated` |
-| `routes/agents.ts` | `DELETE /:id` | `agent.deleted` |
-| `routes/runs.ts` | `POST /` | `run.started` |
-| `routes/runs.ts` | `POST /:id/approve` | `run.approved` |
-| `routes/runs.ts` | `POST /:id/reject` | `run.rejected` |
-| `routes/connectors.ts` | `POST /` | `connector.created` |
-| `routes/connectors.ts` | `DELETE /:id` | `connector.deleted` |
-| `routes/workspaces.ts` | `POST /:id/members` | `member.invited` |
-| `routes/workspaces.ts` | `PATCH /:id/members/:memberId` | `member.role_changed` |
-| `routes/workspaces.ts` | `DELETE /:id/members/:memberId` | `member.removed` |
-| `routes/providers.ts` | `POST /` | `provider.created` |
-| `routes/providers.ts` | `DELETE /:id` | `provider.deleted` |
-| `routes/api-keys.ts` | `POST /` | `api_key.created` |
-| `routes/api-keys.ts` | `DELETE /:id` | `api_key.revoked` |
+| File                   | Route                           | Action                |
+| ---------------------- | ------------------------------- | --------------------- |
+| `routes/agents.ts`     | `POST /`                        | `agent.created`       |
+| `routes/agents.ts`     | `PUT /:id`                      | `agent.updated`       |
+| `routes/agents.ts`     | `DELETE /:id`                   | `agent.deleted`       |
+| `routes/runs.ts`       | `POST /`                        | `run.started`         |
+| `routes/runs.ts`       | `POST /:id/approve`             | `run.approved`        |
+| `routes/runs.ts`       | `POST /:id/reject`              | `run.rejected`        |
+| `routes/connectors.ts` | `POST /`                        | `connector.created`   |
+| `routes/connectors.ts` | `DELETE /:id`                   | `connector.deleted`   |
+| `routes/workspaces.ts` | `POST /:id/members`             | `member.invited`      |
+| `routes/workspaces.ts` | `PATCH /:id/members/:memberId`  | `member.role_changed` |
+| `routes/workspaces.ts` | `DELETE /:id/members/:memberId` | `member.removed`      |
+| `routes/providers.ts`  | `POST /`                        | `provider.created`    |
+| `routes/providers.ts`  | `DELETE /:id`                   | `provider.deleted`    |
+| `routes/api-keys.ts`   | `POST /`                        | `api_key.created`     |
+| `routes/api-keys.ts`   | `DELETE /:id`                   | `api_key.revoked`     |
 
 ### API: `GET /api/workspaces/:id/audit-logs`
 
@@ -596,10 +599,10 @@ export function auditLogRoutes(db: Database) {
     const offset = Number(c.req.query("offset")) || 0;
 
     // Optional filters
-    const actionFilter = c.req.query("action");        // e.g., "agent.created"
+    const actionFilter = c.req.query("action"); // e.g., "agent.created"
     const userFilter = c.req.query("userId");
-    const fromDate = c.req.query("from");               // ISO date string
-    const toDate = c.req.query("to");                   // ISO date string
+    const fromDate = c.req.query("from"); // ISO date string
+    const toDate = c.req.query("to"); // ISO date string
 
     const conditions = [eq(auditLogs.workspaceId, workspaceId)];
 
@@ -698,7 +701,7 @@ export const connectors = pgTable(
   "connectors",
   {
     // ... existing columns ...
-    lastHealthStatus: text("last_health_status"),  // "healthy" | "unhealthy" | null
+    lastHealthStatus: text("last_health_status"), // "healthy" | "unhealthy" | null
     lastHealthCheckAt: timestamp("last_health_check_at", { withTimezone: true }),
   },
   // ... existing indexes ...
@@ -751,7 +754,7 @@ app.post("/:id/health", requireRole("viewer"), async (c) => {
           headers: { Authorization: `Bearer ${token}` },
           signal: AbortSignal.timeout(10_000),
         });
-        const data = await res.json() as { ok: boolean; error?: string };
+        const data = (await res.json()) as { ok: boolean; error?: string };
         if (!data.ok) throw new Error(`Slack error: ${data.error}`);
         status = "healthy";
         break;
@@ -815,16 +818,16 @@ Modify `apps/dashboard/src/components/connectors/connector-card.tsx` to show a h
 
 ```tsx
 // Add health status indicator near the connector name or status badge
-{connector.lastHealthStatus && (
-  <span
-    className={`inline-block h-2.5 w-2.5 rounded-full ${
-      connector.lastHealthStatus === "healthy"
-        ? "bg-green-500"
-        : "bg-red-500"
-    }`}
-    title={`Last check: ${connector.lastHealthCheckAt ? new Date(connector.lastHealthCheckAt).toLocaleString() : "never"}`}
-  />
-)}
+{
+  connector.lastHealthStatus && (
+    <span
+      className={`inline-block h-2.5 w-2.5 rounded-full ${
+        connector.lastHealthStatus === "healthy" ? "bg-green-500" : "bg-red-500"
+      }`}
+      title={`Last check: ${connector.lastHealthCheckAt ? new Date(connector.lastHealthCheckAt).toLocaleString() : "never"}`}
+    />
+  );
+}
 ```
 
 Update the `Connector` type in `apps/dashboard/src/types/index.ts`:
@@ -870,6 +873,7 @@ pnpm --filter @gnana/db db:generate
 ```
 
 This will produce a migration that:
+
 1. Creates the `audit_logs` table with 3 indexes.
 2. Adds `last_health_status` (text, nullable) and `last_health_check_at` (timestamptz, nullable) columns to `connectors`.
 
@@ -879,31 +883,31 @@ Both changes are additive (new table, new nullable columns) so the migration is 
 
 ## Files to Create
 
-| File | Purpose |
-|---|---|
-| `packages/db/src/seed.ts` | Seed default plans (Free, Pro, Enterprise), auto-assign Free to unassigned workspaces |
-| `packages/server/src/routes/audit-logs.ts` | `GET /audit-logs` -- paginated, filtered audit log endpoint |
-| `apps/dashboard/src/app/(dashboard)/settings/audit-log/page.tsx` | Audit log viewer with table, filters, pagination |
+| File                                                             | Purpose                                                                               |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `packages/db/src/seed.ts`                                        | Seed default plans (Free, Pro, Enterprise), auto-assign Free to unassigned workspaces |
+| `packages/server/src/routes/audit-logs.ts`                       | `GET /audit-logs` -- paginated, filtered audit log endpoint                           |
+| `apps/dashboard/src/app/(dashboard)/settings/audit-log/page.tsx` | Audit log viewer with table, filters, pagination                                      |
 
 ## Files to Modify
 
-| File | Changes |
-|---|---|
-| `packages/db/src/schema.ts` | Add `auditLogs` table; add `lastHealthStatus` and `lastHealthCheckAt` to `connectors` |
-| `packages/db/package.json` | Add `db:seed` script |
-| `packages/server/src/index.ts` | Wire `auditLogRoutes`; add token usage aggregation in `run:execute` handler |
-| `packages/server/src/routes/workspaces.ts` | Add `planLimit` to member invite route; add `GET /:id/usage` endpoint; auto-assign Free plan on workspace create |
-| `packages/server/src/routes/connectors.ts` | Add `POST /:id/health` endpoint |
-| `packages/server/src/routes/agents.ts` | Add `logAudit()` calls to POST, PUT, DELETE handlers |
-| `packages/server/src/routes/runs.ts` | Add `logAudit()` calls to POST, approve, reject handlers |
-| `packages/server/src/routes/providers.ts` | Add `logAudit()` calls to POST, DELETE handlers |
-| `packages/server/src/routes/api-keys.ts` | Add `logAudit()` calls to POST, DELETE handlers |
-| `packages/server/src/middleware/audit-log.ts` | New file -- `logAudit()` utility, `getClientIp()`, sensitive field redaction |
-| `apps/dashboard/src/app/(dashboard)/settings/billing/page.tsx` | Replace stub with live usage data from API |
-| `apps/dashboard/src/app/(dashboard)/settings/page.tsx` | Add Audit Log quick-link card |
-| `apps/dashboard/src/app/(dashboard)/connectors/page.tsx` | No changes needed (connector-card handles display) |
-| `apps/dashboard/src/components/connectors/connector-card.tsx` | Add health status dot indicator |
-| `apps/dashboard/src/types/index.ts` | Add `lastHealthStatus` and `lastHealthCheckAt` to `Connector` type |
+| File                                                           | Changes                                                                                                          |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `packages/db/src/schema.ts`                                    | Add `auditLogs` table; add `lastHealthStatus` and `lastHealthCheckAt` to `connectors`                            |
+| `packages/db/package.json`                                     | Add `db:seed` script                                                                                             |
+| `packages/server/src/index.ts`                                 | Wire `auditLogRoutes`; add token usage aggregation in `run:execute` handler                                      |
+| `packages/server/src/routes/workspaces.ts`                     | Add `planLimit` to member invite route; add `GET /:id/usage` endpoint; auto-assign Free plan on workspace create |
+| `packages/server/src/routes/connectors.ts`                     | Add `POST /:id/health` endpoint                                                                                  |
+| `packages/server/src/routes/agents.ts`                         | Add `logAudit()` calls to POST, PUT, DELETE handlers                                                             |
+| `packages/server/src/routes/runs.ts`                           | Add `logAudit()` calls to POST, approve, reject handlers                                                         |
+| `packages/server/src/routes/providers.ts`                      | Add `logAudit()` calls to POST, DELETE handlers                                                                  |
+| `packages/server/src/routes/api-keys.ts`                       | Add `logAudit()` calls to POST, DELETE handlers                                                                  |
+| `packages/server/src/middleware/audit-log.ts`                  | New file -- `logAudit()` utility, `getClientIp()`, sensitive field redaction                                     |
+| `apps/dashboard/src/app/(dashboard)/settings/billing/page.tsx` | Replace stub with live usage data from API                                                                       |
+| `apps/dashboard/src/app/(dashboard)/settings/page.tsx`         | Add Audit Log quick-link card                                                                                    |
+| `apps/dashboard/src/app/(dashboard)/connectors/page.tsx`       | No changes needed (connector-card handles display)                                                               |
+| `apps/dashboard/src/components/connectors/connector-card.tsx`  | Add health status dot indicator                                                                                  |
+| `apps/dashboard/src/types/index.ts`                            | Add `lastHealthStatus` and `lastHealthCheckAt` to `Connector` type                                               |
 
 ---
 
@@ -956,5 +960,5 @@ Each step is independently deployable.
 1. **Stripe integration** -- the upgrade CTA is a placeholder. When ready, wire plan changes through Stripe Checkout and webhooks to update `workspaces.planId`.
 2. **Audit log retention** -- no automatic cleanup. For high-volume workspaces, consider a retention policy (e.g., delete logs older than 90 days) or archive to cold storage.
 3. **Periodic health checks** -- deferred to when the job queue supports cron/scheduled jobs. For now, health checks are manual.
-4. **Token usage granularity** -- currently aggregated monthly. Consider per-run cost breakdown (model pricing * tokens) for a future cost explorer feature.
+4. **Token usage granularity** -- currently aggregated monthly. Consider per-run cost breakdown (model pricing \* tokens) for a future cost explorer feature.
 5. **Audit log export** -- CSV/JSON export endpoint for compliance teams. Low priority, add when requested.

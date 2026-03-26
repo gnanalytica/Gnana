@@ -634,10 +634,7 @@ function deepMerge(
       sVal !== null &&
       !Array.isArray(sVal)
     ) {
-      result[key] = deepMerge(
-        tVal as Record<string, unknown>,
-        sVal as Record<string, unknown>,
-      );
+      result[key] = deepMerge(tVal as Record<string, unknown>, sVal as Record<string, unknown>);
     } else if (Array.isArray(tVal) && Array.isArray(sVal)) {
       result[key] = [...tVal, ...sVal];
     } else {
@@ -711,10 +708,7 @@ async function executeLoopNode(
 
 // ---- Subgraph execution helpers ----
 
-function topologicalSortNodes(
-  nodes: DAGNode[],
-  edges: DAGEdge[],
-): string[] {
+function topologicalSortNodes(nodes: DAGNode[], edges: DAGEdge[]): string[] {
   const adjacency = new Map<string, string[]>();
   const inDeg = new Map<string, number>();
 
@@ -865,9 +859,7 @@ function identifyBranch(
     branchNodeIds.push(current);
 
     // Enqueue downstream nodes
-    const downstream = pipeline.edges
-      .filter((e) => e.source === current)
-      .map((e) => e.target);
+    const downstream = pipeline.edges.filter((e) => e.source === current).map((e) => e.target);
     queue.push(...downstream);
   }
 
@@ -914,13 +906,7 @@ async function executeParallelNode(
       branchInput = JSON.parse(JSON.stringify(inputs));
     }
 
-    const branchExecution = executeSubgraph(
-      branchNodeIds,
-      branchInput,
-      ctx,
-      results,
-      pipeline,
-    );
+    const branchExecution = executeSubgraph(branchNodeIds, branchInput, ctx, results, pipeline);
 
     if (branchTimeoutMs > 0) {
       return Promise.race([

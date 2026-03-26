@@ -1,5 +1,9 @@
 import type { DAGPipeline, DAGNode } from "./dag-executor.js";
-import { evaluateExpression, validateExpression, type ExpressionScope } from "./expression-evaluator.js";
+import {
+  evaluateExpression,
+  validateExpression,
+  type ExpressionScope,
+} from "./expression-evaluator.js";
 
 // ---- Public Types ----
 
@@ -108,9 +112,7 @@ function identifyBranch(
     const node = pipeline.nodes.find((n) => n.id === current);
     if (!node || node.type === "merge") continue;
     branchNodeIds.push(current);
-    const downstream = pipeline.edges
-      .filter((e) => e.source === current)
-      .map((e) => e.target);
+    const downstream = pipeline.edges.filter((e) => e.source === current).map((e) => e.target);
     queue.push(...downstream);
   }
   return branchNodeIds;
@@ -303,7 +305,10 @@ function mockMergeNode(
     case "first": {
       if (typeof mockInput === "object" && mockInput !== null && !Array.isArray(mockInput)) {
         const values = Object.values(mockInput as Record<string, unknown>);
-        return { mockOutput: values.find((v) => v !== undefined && v !== null) ?? null, warnings: [] };
+        return {
+          mockOutput: values.find((v) => v !== undefined && v !== null) ?? null,
+          warnings: [],
+        };
       }
       return { mockOutput: mockInput, warnings: [] };
     }
@@ -465,7 +470,13 @@ export function executeDryRun(options: DryRunOptions): DryRunResult {
         }
 
         case "transform": {
-          const transformResult = mockTransformNode(node, mockInput, mockResults, triggerData, runId);
+          const transformResult = mockTransformNode(
+            node,
+            mockInput,
+            mockResults,
+            triggerData,
+            runId,
+          );
           mockOutput = transformResult.mockOutput;
           warnings.push(...transformResult.warnings);
           break;
@@ -479,15 +490,13 @@ export function executeDryRun(options: DryRunOptions): DryRunResult {
         }
 
         case "loop": {
-          const maxIter = Math.min(
-            maxLoopIterations,
-            (node.data.maxIterations as number) ?? 10,
-          );
+          const maxIter = Math.min(maxLoopIterations, (node.data.maxIterations as number) ?? 10);
           iterationCount = maxIter;
           mockOutput = mockInput;
 
           // Try evaluating untilCondition to see if it terminates early
-          const untilCond = (node.data.untilCondition as string) ?? (node.data.condition as string) ?? "false";
+          const untilCond =
+            (node.data.untilCondition as string) ?? (node.data.condition as string) ?? "false";
           for (let i = 0; i < maxIter; i++) {
             const scope: ExpressionScope = {
               input: mockOutput,
@@ -520,7 +529,8 @@ export function executeDryRun(options: DryRunOptions): DryRunResult {
               const branchNode = pipeline.nodes.find((n) => n.id === branchNodeId);
               if (!branchNode) continue;
 
-              const branchInput = gatherMockInputs(branchNodeId, pipeline, mockResults) ?? mockInput;
+              const branchInput =
+                gatherMockInputs(branchNodeId, pipeline, mockResults) ?? mockInput;
               // Simple mock for branch nodes
               let branchOutput: unknown = branchInput;
               const branchWarnings: string[] = [];
@@ -539,7 +549,13 @@ export function executeDryRun(options: DryRunOptions): DryRunResult {
                 branchDuration = toolRes.estimatedDurationMs;
                 branchWarnings.push(...toolRes.warnings);
               } else if (branchNode.type === "transform") {
-                const trResult = mockTransformNode(branchNode, branchInput, mockResults, triggerData, runId);
+                const trResult = mockTransformNode(
+                  branchNode,
+                  branchInput,
+                  mockResults,
+                  triggerData,
+                  runId,
+                );
                 branchOutput = trResult.mockOutput;
                 branchWarnings.push(...trResult.warnings);
               }
@@ -628,9 +644,7 @@ export function executeDryRun(options: DryRunOptions): DryRunResult {
     return {
       success: false,
       executionPath,
-      skippedNodeIds: pipeline.nodes
-        .map((n) => n.id)
-        .filter((id) => !visitedNodeIds.has(id)),
+      skippedNodeIds: pipeline.nodes.map((n) => n.id).filter((id) => !visitedNodeIds.has(id)),
       totalEstimatedTokens: { input: 0, output: 0 },
       validationWarnings,
       error: error instanceof Error ? error.message : "Unknown dry-run error",

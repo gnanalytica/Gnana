@@ -54,9 +54,7 @@ export function MCPConfigForm({
   onChange,
 }: MCPConfigFormProps) {
   const [serverName, setServerName] = useState(initialConfig?.serverName ?? "");
-  const [transport, setTransport] = useState<"stdio" | "http">(
-    initialConfig?.transport ?? "http",
-  );
+  const [transport, setTransport] = useState<"stdio" | "http">(initialConfig?.transport ?? "http");
   const [url, setUrl] = useState(initialConfig?.url ?? "");
   const [command, setCommand] = useState(initialConfig?.command ?? "");
   const [argsText, setArgsText] = useState(initialConfig?.args?.join("\n") ?? "");
@@ -85,9 +83,7 @@ export function MCPConfigForm({
             .split("\n")
             .map((line) => {
               const idx = line.indexOf("=");
-              return idx > 0
-                ? [line.slice(0, idx).trim(), line.slice(idx + 1).trim()]
-                : null;
+              return idx > 0 ? [line.slice(0, idx).trim(), line.slice(idx + 1).trim()] : null;
             })
             .filter(Boolean) as [string, string][],
         )

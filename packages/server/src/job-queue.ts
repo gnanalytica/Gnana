@@ -106,10 +106,7 @@ export class JobQueue {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         const attempt = (job.attempts ?? 0) + 1;
-        jobLog.error(
-          { err: error, jobId: job.id, jobType: job.type, attempt },
-          "Job failed",
-        );
+        jobLog.error({ err: error, jobId: job.id, jobType: job.type, attempt }, "Job failed");
         Sentry.withScope((scope) => {
           scope.setTag("job.type", job.type);
           scope.setContext("job", {

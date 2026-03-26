@@ -1,5 +1,17 @@
 import { Hono } from "hono";
-import { eq, and, sql, workspaces, workspaceMembers, workspaceInvites, agents, connectors, plans, usageRecords, type Database } from "@gnana/db";
+import {
+  eq,
+  and,
+  sql,
+  workspaces,
+  workspaceMembers,
+  workspaceInvites,
+  agents,
+  connectors,
+  plans,
+  usageRecords,
+  type Database,
+} from "@gnana/db";
 import { requireRole } from "../middleware/rbac.js";
 import { randomBytes } from "node:crypto";
 import {
@@ -235,10 +247,23 @@ export function workspaceRoutes(db: Database) {
     // Count resources
     const period = new Date().toISOString().slice(0, 7); // "2026-03"
     const [agentCount, connectorCount, memberCount, usageRows] = await Promise.all([
-      db.select({ count: sql<number>`count(*)::int` }).from(agents).where(eq(agents.workspaceId, workspaceId)),
-      db.select({ count: sql<number>`count(*)::int` }).from(connectors).where(and(eq(connectors.workspaceId, workspaceId), eq(connectors.enabled, true))),
-      db.select({ count: sql<number>`count(*)::int` }).from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspaceId)),
-      db.select().from(usageRecords).where(and(eq(usageRecords.workspaceId, workspaceId), eq(usageRecords.period, period))).limit(1),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(agents)
+        .where(eq(agents.workspaceId, workspaceId)),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(connectors)
+        .where(and(eq(connectors.workspaceId, workspaceId), eq(connectors.enabled, true))),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(workspaceMembers)
+        .where(eq(workspaceMembers.workspaceId, workspaceId)),
+      db
+        .select()
+        .from(usageRecords)
+        .where(and(eq(usageRecords.workspaceId, workspaceId), eq(usageRecords.period, period)))
+        .limit(1),
     ]);
 
     const usage = usageRows[0];

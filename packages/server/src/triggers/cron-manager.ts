@@ -23,10 +23,7 @@ export class CronManager {
   async start() {
     jobLog.info("CronManager starting — loading cron triggers from DB");
 
-    const allAgents = await this.db
-      .select()
-      .from(agents)
-      .where(eq(agents.enabled, true));
+    const allAgents = await this.db.select().from(agents).where(eq(agents.enabled, true));
 
     let scheduled = 0;
     for (const agent of allAgents) {

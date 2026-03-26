@@ -326,7 +326,14 @@ function PipelineCanvasInner({
         };
       }),
     );
-  }, [validationErrors, execPreview.currentNodeId, execPreview.executedNodeIds, liveRun, dryRunNodeIds, setNodes]);
+  }, [
+    validationErrors,
+    execPreview.currentNodeId,
+    execPreview.executedNodeIds,
+    liveRun,
+    dryRunNodeIds,
+    setNodes,
+  ]);
 
   // Notify parent on changes
   useEffect(() => {

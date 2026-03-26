@@ -19,10 +19,7 @@ export function webhookRoutes(db: Database, queue: JobQueue) {
     const agentId = c.req.param("agentId");
 
     // 1. Load agent by ID, check enabled
-    const agentResult = await db
-      .select()
-      .from(agents)
-      .where(eq(agents.id, agentId));
+    const agentResult = await db.select().from(agents).where(eq(agents.id, agentId));
 
     if (agentResult.length === 0) {
       return errorResponse(c, 404, "NOT_FOUND", "Agent not found");

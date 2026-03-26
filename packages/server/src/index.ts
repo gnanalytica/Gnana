@@ -177,7 +177,13 @@ function formatLogMessage(eventName: string, payload: Record<string, unknown>): 
   }
 }
 
-function createApp(db: Database, events: EventBus, queue: JobQueue, cronManager: CronManager, mcpManager: MCPManager) {
+function createApp(
+  db: Database,
+  events: EventBus,
+  queue: JobQueue,
+  cronManager: CronManager,
+  mcpManager: MCPManager,
+) {
   const app = new Hono();
 
   // Middleware

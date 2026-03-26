@@ -45,18 +45,18 @@ A safe, zero-dependency expression evaluator. No `eval()`, no `new Function()`, 
 
 ### Supported Syntax
 
-| Category | Operators / Features | Examples |
-|---|---|---|
-| Field access | `.` dot notation, `[]` bracket notation | `input.name`, `input["field-name"]`, `context.results.node1.score` |
-| Comparison | `==`, `!=`, `>`, `<`, `>=`, `<=` | `input.score > 0.8` |
-| Logical | `&&`, `||`, `!` | `input.approved && input.score > 0.5` |
-| Arithmetic | `+`, `-`, `*`, `/`, `%` | `input.price * input.quantity` |
-| String ops | `contains()`, `startsWith()`, `endsWith()`, `substring()`, `length` | `input.email.contains("@gmail")` |
-| Ternary | `? :` | `input.score > 0.8 ? "high" : "low"` |
-| Object literals | `{ key: value }` | `{ summary: input.text.substring(0, 100) }` |
-| Array literals | `[a, b, c]` | `[input.name, input.email]` |
-| Null coalescing | `??` | `input.nickname ?? input.name` |
-| Typeof | `typeof` | `typeof input.data == "string"` |
+| Category        | Operators / Features                                                | Examples                                                           |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ | ------ | ------------------------------------- |
+| Field access    | `.` dot notation, `[]` bracket notation                             | `input.name`, `input["field-name"]`, `context.results.node1.score` |
+| Comparison      | `==`, `!=`, `>`, `<`, `>=`, `<=`                                    | `input.score > 0.8`                                                |
+| Logical         | `&&`, `                                                             |                                                                    | `, `!` | `input.approved && input.score > 0.5` |
+| Arithmetic      | `+`, `-`, `*`, `/`, `%`                                             | `input.price * input.quantity`                                     |
+| String ops      | `contains()`, `startsWith()`, `endsWith()`, `substring()`, `length` | `input.email.contains("@gmail")`                                   |
+| Ternary         | `? :`                                                               | `input.score > 0.8 ? "high" : "low"`                               |
+| Object literals | `{ key: value }`                                                    | `{ summary: input.text.substring(0, 100) }`                        |
+| Array literals  | `[a, b, c]`                                                         | `[input.name, input.email]`                                        |
+| Null coalescing | `??`                                                                | `input.nickname ?? input.name`                                     |
+| Typeof          | `typeof`                                                            | `typeof input.data == "string"`                                    |
 
 ### Operator Precedence (highest to lowest)
 
@@ -145,6 +145,7 @@ type ASTNode =
 **Evaluator** -- Tree-walk the AST. Variable resolution: `input` and `context` resolve to their scope values. Any other root identifier is an error. Method calls are only allowed on the allowlist -- the evaluator checks the method name against a hardcoded set and dispatches to the corresponding JS string/array method. No prototype chain walking. No constructor access. No `__proto__`.
 
 **Security constraints**:
+
 - Maximum expression length: 2048 characters.
 - Maximum AST depth: 32 levels.
 - Maximum evaluation steps: 10,000 (prevents infinite-ish expressions).
@@ -162,21 +163,21 @@ evaluate('input.sentiment == "negative"', {
 // => { success: true, value: true }
 
 // Loop until: check approval
-evaluate('input.approved == true', {
+evaluate("input.approved == true", {
   input: { approved: false },
   context: { results: {}, iteration: 2, runId: "run-1" },
 });
 // => { success: true, value: false }
 
 // Transform: reshape data
-evaluate('{ summary: input.text.substring(0, 100), score: input.confidence * 100 }', {
+evaluate("{ summary: input.text.substring(0, 100), score: input.confidence * 100 }", {
   input: { text: "Long text here...", confidence: 0.85 },
   context: { results: {}, runId: "run-1" },
 });
 // => { success: true, value: { summary: "Long text here...", score: 85 } }
 
 // Error handling
-evaluate('input.nonexistent.deep.access', {
+evaluate("input.nonexistent.deep.access", {
   input: { name: "test" },
   context: { results: {}, runId: "run-1" },
 });
@@ -186,6 +187,7 @@ evaluate('input.nonexistent.deep.access', {
 ### Testing
 
 Create `packages/core/src/__tests__/expression-evaluator.test.ts`:
+
 - Arithmetic: `1 + 2 * 3` => 7, `(1 + 2) * 3` => 9
 - Comparison: `input.x > 5`, `input.name == "alice"`
 - Logical: `input.a && input.b`, `!input.done`
@@ -271,6 +273,7 @@ The loop node checks its exit condition via `new Function()` and increments `__i
 ### New Behavior
 
 The loop node must:
+
 1. Identify its loop body -- the subgraph between the loop node and its corresponding merge point.
 2. Execute the body nodes on each iteration.
 3. Evaluate the `untilCondition` after each iteration using the expression evaluator.
@@ -383,9 +386,10 @@ async function executeSubgraph(
     if (inputEdges.length === 0) {
       nodeInput = initialInput;
     } else if (inputEdges.length === 1) {
-      nodeInput = subResults.get(inputEdges[0]!.source)
-        ?? parentResults.get(inputEdges[0]!.source)
-        ?? initialInput;
+      nodeInput =
+        subResults.get(inputEdges[0]!.source) ??
+        parentResults.get(inputEdges[0]!.source) ??
+        initialInput;
     } else {
       const combined: Record<string, unknown> = {};
       for (const edge of inputEdges) {
@@ -411,11 +415,11 @@ async function executeSubgraph(
 
 Add to `DAGNode.data` (loop type):
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `maxIterations` | `number` | `10` | Hard cap on iteration count |
-| `untilCondition` | `string` | `"false"` | Expression evaluated after each iteration; loop stops when true |
-| `bodyNodeIds` | `string[]` | `[]` | Explicit list of node IDs forming the loop body |
+| Field            | Type       | Default   | Description                                                     |
+| ---------------- | ---------- | --------- | --------------------------------------------------------------- |
+| `maxIterations`  | `number`   | `10`      | Hard cap on iteration count                                     |
+| `untilCondition` | `string`   | `"false"` | Expression evaluated after each iteration; loop stops when true |
+| `bodyNodeIds`    | `string[]` | `[]`      | Explicit list of node IDs forming the loop body                 |
 
 ---
 
@@ -482,13 +486,7 @@ async function executeParallelNode(
     const branchNodeIds = identifyBranch(edge.target, node.id, pipeline);
     const branchInput = structuredClone(inputs); // Deep copy for isolation
 
-    const branchExecution = executeSubgraph(
-      branchNodeIds,
-      branchInput,
-      ctx,
-      results,
-      pipeline,
-    );
+    const branchExecution = executeSubgraph(branchNodeIds, branchInput, ctx, results, pipeline);
 
     if (branchTimeoutMs > 0) {
       return Promise.race([
@@ -580,9 +578,7 @@ function identifyBranch(
     branchNodeIds.push(current);
 
     // Enqueue downstream nodes
-    const downstream = pipeline.edges
-      .filter((e) => e.source === current)
-      .map((e) => e.target);
+    const downstream = pipeline.edges.filter((e) => e.source === current).map((e) => e.target);
     queue.push(...downstream);
   }
 
@@ -594,10 +590,10 @@ function identifyBranch(
 
 Add to `DAGNode.data` (parallel type):
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `onBranchError` | `"fail-all" \| "continue-others"` | `"fail-all"` | What happens when one branch fails |
-| `branchTimeoutMs` | `number` | `0` | Per-branch timeout; 0 = no timeout |
+| Field             | Type                              | Default      | Description                        |
+| ----------------- | --------------------------------- | ------------ | ---------------------------------- |
+| `onBranchError`   | `"fail-all" \| "continue-others"` | `"fail-all"` | What happens when one branch fails |
+| `branchTimeoutMs` | `number`                          | `0`          | Per-branch timeout; 0 = no timeout |
 
 ---
 
@@ -694,21 +690,17 @@ Configurable merge strategies. The merge node's `data.strategy` field determines
 
 ### Strategies
 
-| Strategy | Behavior | Use Case |
-|---|---|---|
-| `concat` | Collect all inputs into a flat array. If an input is itself an array, its elements are spread. | Aggregating results from parallel branches |
-| `object` | Merge all inputs into a single object, keyed by edge label (falls back to source node ID). Existing behavior, but explicit. | Combining named outputs from different branches |
-| `first` | Return the first non-undefined input. Useful for parallel "race" patterns. | Taking the fastest result from parallel branches |
-| `deepMerge` | Recursively merge all input objects. Later inputs override earlier ones for conflicting keys. | Combining partial results that share structure |
+| Strategy    | Behavior                                                                                                                    | Use Case                                         |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `concat`    | Collect all inputs into a flat array. If an input is itself an array, its elements are spread.                              | Aggregating results from parallel branches       |
+| `object`    | Merge all inputs into a single object, keyed by edge label (falls back to source node ID). Existing behavior, but explicit. | Combining named outputs from different branches  |
+| `first`     | Return the first non-undefined input. Useful for parallel "race" patterns.                                                  | Taking the fastest result from parallel branches |
+| `deepMerge` | Recursively merge all input objects. Later inputs override earlier ones for conflicting keys.                               | Combining partial results that share structure   |
 
 ### Implementation
 
 ```typescript
-async function executeMergeNode(
-  node: DAGNode,
-  inputs: unknown,
-  ctx: DAGContext,
-): Promise<unknown> {
+async function executeMergeNode(node: DAGNode, inputs: unknown, ctx: DAGContext): Promise<unknown> {
   const strategy = (node.data.strategy as string) ?? "object";
 
   switch (strategy) {
@@ -759,8 +751,12 @@ function deepMerge(
     const targetVal = target[key];
     const sourceVal = source[key];
     if (
-      typeof targetVal === "object" && targetVal !== null && !Array.isArray(targetVal) &&
-      typeof sourceVal === "object" && sourceVal !== null && !Array.isArray(sourceVal)
+      typeof targetVal === "object" &&
+      targetVal !== null &&
+      !Array.isArray(targetVal) &&
+      typeof sourceVal === "object" &&
+      sourceVal !== null &&
+      !Array.isArray(sourceVal)
     ) {
       result[key] = deepMerge(
         targetVal as Record<string, unknown>,
@@ -778,8 +774,8 @@ function deepMerge(
 
 Add to `DAGNode.data` (merge type):
 
-| Field | Type | Default | Description |
-|---|---|---|---|
+| Field      | Type                                             | Default    | Description                                        |
+| ---------- | ------------------------------------------------ | ---------- | -------------------------------------------------- |
 | `strategy` | `"concat" \| "object" \| "first" \| "deepMerge"` | `"object"` | How to combine inputs from multiple upstream nodes |
 
 ---
@@ -860,18 +856,18 @@ export function executeDryRun(options: DryRunOptions): DryRunResult;
 
 Each node type has a mock executor that returns synthetic data:
 
-| Node Type | Mock Behavior |
-|---|---|
-| **trigger** | Returns `triggerData` (or `{}`) |
-| **llm** | Returns `{ response: "[Mock LLM response for: {first 80 chars of systemPrompt}]", model: "{data.model}" }`. Estimates tokens: input = `JSON.stringify(mockInput).length / 4`, output = `(data.maxTokens ?? 4096) / 4`. |
-| **tool** | Returns `{ result: "[Mock tool result for: {data.toolName}]", tool: "{data.toolName}" }`. If `mockData[nodeId]` is provided, use that instead. |
-| **humanGate** | Auto-approves. Returns `{ approved: true, autoApproved: true }`. |
-| **condition** | Evaluates expression using the expression evaluator against mock input. If expression cannot be evaluated, uses `defaultConditionBranch` (default: `"true"`). |
-| **loop** | Runs `min(maxLoopIterations ?? 2, data.maxIterations ?? 10)` iterations. Evaluates `untilCondition` if possible. |
-| **parallel** | Identifies branches and "executes" them (mock) -- records branch count. |
-| **merge** | Applies the configured merge strategy against mock inputs. |
-| **transform** | Evaluates expression using the expression evaluator. Falls back to passing input through. |
-| **output** | Passes input through. |
+| Node Type     | Mock Behavior                                                                                                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **trigger**   | Returns `triggerData` (or `{}`)                                                                                                                                                                                        |
+| **llm**       | Returns `{ response: "[Mock LLM response for: {first 80 chars of systemPrompt}]", model: "{data.model}" }`. Estimates tokens: input = `JSON.stringify(mockInput).length / 4`, output = `(data.maxTokens ?? 4096) / 4`. |
+| **tool**      | Returns `{ result: "[Mock tool result for: {data.toolName}]", tool: "{data.toolName}" }`. If `mockData[nodeId]` is provided, use that instead.                                                                         |
+| **humanGate** | Auto-approves. Returns `{ approved: true, autoApproved: true }`.                                                                                                                                                       |
+| **condition** | Evaluates expression using the expression evaluator against mock input. If expression cannot be evaluated, uses `defaultConditionBranch` (default: `"true"`).                                                          |
+| **loop**      | Runs `min(maxLoopIterations ?? 2, data.maxIterations ?? 10)` iterations. Evaluates `untilCondition` if possible.                                                                                                       |
+| **parallel**  | Identifies branches and "executes" them (mock) -- records branch count.                                                                                                                                                |
+| **merge**     | Applies the configured merge strategy against mock inputs.                                                                                                                                                             |
+| **transform** | Evaluates expression using the expression evaluator. Falls back to passing input through.                                                                                                                              |
+| **output**    | Passes input through.                                                                                                                                                                                                  |
 
 ### Dry-Run Execution Flow
 
@@ -960,6 +956,7 @@ app.post(
 ```
 
 This endpoint:
+
 - Does NOT create a run record in the database (no side effects).
 - Does NOT count against the workspace's monthly run limit.
 - Has a more permissive rate limit (30/min vs 10/min for real runs).
@@ -999,7 +996,9 @@ interface ExecutionToolbarProps {
 Add to the toolbar, before the existing play controls:
 
 ```tsx
-{/* Dry-Run Preview Button */}
+{
+  /* Dry-Run Preview Button */
+}
 <Button
   variant="ghost"
   size="sm"
@@ -1014,33 +1013,44 @@ Add to the toolbar, before the existing play controls:
     <Eye className="h-3.5 w-3.5" />
   )}
   Preview
-</Button>
+</Button>;
 
-{/* Separator */}
-<div className="h-4 w-px bg-border mx-1" />
+{
+  /* Separator */
+}
+<div className="h-4 w-px bg-border mx-1" />;
 
-{/* Existing play/pause/step/reset controls */}
+{
+  /* Existing play/pause/step/reset controls */
+}
 ```
 
 When `previewResult` is non-null, show a summary badge:
 
 ```tsx
-{previewResult && (
-  <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
-    <span>{previewResult.executionPath.length} nodes</span>
-    <span className="text-border">|</span>
-    <span>~{previewResult.totalEstimatedTokens.input + previewResult.totalEstimatedTokens.output} tokens</span>
-    {previewResult.validationWarnings.length > 0 && (
-      <>
-        <span className="text-border">|</span>
-        <span className="text-yellow-500">{previewResult.validationWarnings.length} warnings</span>
-      </>
-    )}
-    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onClearPreview}>
-      <X className="h-3 w-3" />
-    </Button>
-  </div>
-)}
+{
+  previewResult && (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
+      <span>{previewResult.executionPath.length} nodes</span>
+      <span className="text-border">|</span>
+      <span>
+        ~{previewResult.totalEstimatedTokens.input + previewResult.totalEstimatedTokens.output}{" "}
+        tokens
+      </span>
+      {previewResult.validationWarnings.length > 0 && (
+        <>
+          <span className="text-border">|</span>
+          <span className="text-yellow-500">
+            {previewResult.validationWarnings.length} warnings
+          </span>
+        </>
+      )}
+      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onClearPreview}>
+        <X className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
 ```
 
 ### File: `apps/dashboard/src/lib/canvas/use-dry-run.ts` (new)
@@ -1142,24 +1152,24 @@ const nodeClassName = useCallback(
 
 ### Create
 
-| File | Description |
-|---|---|
-| `packages/core/src/expression-evaluator.ts` | Safe expression parser + evaluator (lexer, recursive-descent parser, tree-walking evaluator) |
-| `packages/core/src/dag-dry-run.ts` | Dry-run engine (mock executors, execution path computation, token estimation) |
-| `packages/core/src/__tests__/expression-evaluator.test.ts` | Unit tests for expression evaluator |
-| `packages/core/src/__tests__/dag-dry-run.test.ts` | Unit tests for dry-run engine |
-| `apps/dashboard/src/lib/canvas/use-dry-run.ts` | React hook for dry-run API calls and state |
+| File                                                       | Description                                                                                  |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `packages/core/src/expression-evaluator.ts`                | Safe expression parser + evaluator (lexer, recursive-descent parser, tree-walking evaluator) |
+| `packages/core/src/dag-dry-run.ts`                         | Dry-run engine (mock executors, execution path computation, token estimation)                |
+| `packages/core/src/__tests__/expression-evaluator.test.ts` | Unit tests for expression evaluator                                                          |
+| `packages/core/src/__tests__/dag-dry-run.test.ts`          | Unit tests for dry-run engine                                                                |
+| `apps/dashboard/src/lib/canvas/use-dry-run.ts`             | React hook for dry-run API calls and state                                                   |
 
 ### Modify
 
-| File | Change |
-|---|---|
-| `packages/core/src/dag-executor.ts` | Replace `new Function()` calls in condition, transform, loop nodes with expression evaluator. Add `executeSubgraph` helper. Enhance parallel node with `Promise.all`. Enhance merge node with strategy support. Pass `results` and `pipeline` to node executors that need them. |
-| `packages/core/src/index.ts` | Export `evaluate`, `validateExpression`, `ExpressionScope`, `ExpressionContext`, `ExpressionResult` from expression-evaluator. Export `executeDryRun`, `DryRunOptions`, `DryRunResult`, `DryRunNodeResult` from dag-dry-run. |
-| `packages/server/src/validation/schemas.ts` | Add `dryRunSchema` Zod schema. |
-| `packages/server/src/routes/runs.ts` | Add `POST /dry-run` endpoint. Import `executeDryRun` from `@gnana/core`. |
-| `apps/dashboard/src/components/canvas/execution-toolbar.tsx` | Add Preview button, loading state, result summary badge, clear button. |
-| `apps/dashboard/src/components/canvas/pipeline-canvas.tsx` | Accept `dryRunResult` prop, apply execution path highlighting and skipped node dimming via `nodeClassName`. |
+| File                                                         | Change                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core/src/dag-executor.ts`                          | Replace `new Function()` calls in condition, transform, loop nodes with expression evaluator. Add `executeSubgraph` helper. Enhance parallel node with `Promise.all`. Enhance merge node with strategy support. Pass `results` and `pipeline` to node executors that need them. |
+| `packages/core/src/index.ts`                                 | Export `evaluate`, `validateExpression`, `ExpressionScope`, `ExpressionContext`, `ExpressionResult` from expression-evaluator. Export `executeDryRun`, `DryRunOptions`, `DryRunResult`, `DryRunNodeResult` from dag-dry-run.                                                    |
+| `packages/server/src/validation/schemas.ts`                  | Add `dryRunSchema` Zod schema.                                                                                                                                                                                                                                                  |
+| `packages/server/src/routes/runs.ts`                         | Add `POST /dry-run` endpoint. Import `executeDryRun` from `@gnana/core`.                                                                                                                                                                                                        |
+| `apps/dashboard/src/components/canvas/execution-toolbar.tsx` | Add Preview button, loading state, result summary badge, clear button.                                                                                                                                                                                                          |
+| `apps/dashboard/src/components/canvas/pipeline-canvas.tsx`   | Accept `dryRunResult` prop, apply execution path highlighting and skipped node dimming via `nodeClassName`.                                                                                                                                                                     |
 
 ---
 

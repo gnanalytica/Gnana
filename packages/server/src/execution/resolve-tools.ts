@@ -90,7 +90,8 @@ export async function resolveTools(
                 }
               | undefined,
             defaultHeaders: cfg["defaultHeaders"] as Record<string, string> | undefined,
-            endpoints: (cfg["endpoints"] as import("@gnana/connector-http").HttpEndpointConfig[]) ?? [],
+            endpoints:
+              (cfg["endpoints"] as import("@gnana/connector-http").HttpEndpointConfig[]) ?? [],
           }) as unknown as ToolDefinition[];
           break;
         }

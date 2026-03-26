@@ -77,13 +77,7 @@ const ALLOWED_METHODS = new Set([
 
 // ---- Token Types ----
 
-type TokenType =
-  | "number"
-  | "string"
-  | "identifier"
-  | "operator"
-  | "punctuation"
-  | "eof";
+type TokenType = "number" | "string" | "identifier" | "operator" | "punctuation" | "eof";
 
 interface Token {
   type: TokenType;
@@ -110,7 +104,12 @@ class Lexer {
       const ch = this.source[this.pos]!;
 
       // Numbers
-      if (this.isDigit(ch) || (ch === "." && this.pos + 1 < this.source.length && this.isDigit(this.source[this.pos + 1]!))) {
+      if (
+        this.isDigit(ch) ||
+        (ch === "." &&
+          this.pos + 1 < this.source.length &&
+          this.isDigit(this.source[this.pos + 1]!))
+      ) {
         this.readNumber();
         continue;
       }
@@ -178,7 +177,10 @@ class Lexer {
 
   private readNumber(): void {
     const start = this.pos;
-    while (this.pos < this.source.length && (this.isDigit(this.source[this.pos]!) || this.source[this.pos] === ".")) {
+    while (
+      this.pos < this.source.length &&
+      (this.isDigit(this.source[this.pos]!) || this.source[this.pos] === ".")
+    ) {
       this.pos++;
     }
     this.tokens.push({ type: "number", value: this.source.slice(start, this.pos), pos: start });
@@ -194,10 +196,17 @@ class Lexer {
         if (this.pos < this.source.length) {
           const escaped = this.source[this.pos]!;
           switch (escaped) {
-            case "n": value += "\n"; break;
-            case "t": value += "\t"; break;
-            case "\\": value += "\\"; break;
-            default: value += escaped;
+            case "n":
+              value += "\n";
+              break;
+            case "t":
+              value += "\t";
+              break;
+            case "\\":
+              value += "\\";
+              break;
+            default:
+              value += escaped;
           }
         }
       } else {
@@ -233,7 +242,9 @@ class Parser {
   parse(): ASTNode {
     const node = this.parseTernary();
     if (this.current().type !== "eof") {
-      throw new Error(`Unexpected token '${this.current().value}' at position ${this.current().pos}`);
+      throw new Error(
+        `Unexpected token '${this.current().value}' at position ${this.current().pos}`,
+      );
     }
     return node;
   }
@@ -361,9 +372,7 @@ class Parser {
     let left = this.parseUnary();
     while (
       this.current().type === "operator" &&
-      (this.current().value === "*" ||
-        this.current().value === "/" ||
-        this.current().value === "%")
+      (this.current().value === "*" || this.current().value === "/" || this.current().value === "%")
     ) {
       const op = this.advance().value;
       const right = this.parseUnary();
@@ -405,7 +414,9 @@ class Parser {
         // Check if this is a method call: property followed by (
         if (this.current().type === "punctuation" && this.current().value === "(") {
           if (!ALLOWED_METHODS.has(prop.value)) {
-            throw new Error(`Method '${prop.value}' is not allowed. Allowed: ${[...ALLOWED_METHODS].join(", ")}`);
+            throw new Error(
+              `Method '${prop.value}' is not allowed. Allowed: ${[...ALLOWED_METHODS].join(", ")}`,
+            );
           }
           this.advance(); // skip (
           const args: ASTNode[] = [];
@@ -419,12 +430,22 @@ class Parser {
           this.expect("punctuation", ")");
           node = {
             type: "call",
-            callee: { type: "member", object: node, property: { type: "literal", value: prop.value }, computed: false },
+            callee: {
+              type: "member",
+              object: node,
+              property: { type: "literal", value: prop.value },
+              computed: false,
+            },
             args,
           };
         } else {
           // Check "length" as a property, not a method
-          node = { type: "member", object: node, property: { type: "literal", value: prop.value }, computed: false };
+          node = {
+            type: "member",
+            object: node,
+            property: { type: "literal", value: prop.value },
+            computed: false,
+          };
         }
       } else if (this.current().type === "punctuation" && this.current().value === "[") {
         this.advance();
@@ -713,7 +734,9 @@ class Evaluator {
   private evalCall(node: ASTNode & { type: "call" }): unknown {
     // Only member calls are allowed (e.g., input.name.startsWith("Dr"))
     if (node.callee.type !== "member") {
-      throw new Error("Only method calls on objects are allowed (e.g., input.name.startsWith(...))");
+      throw new Error(
+        "Only method calls on objects are allowed (e.g., input.name.startsWith(...))",
+      );
     }
 
     const memberNode = node.callee;

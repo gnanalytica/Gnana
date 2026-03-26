@@ -72,9 +72,11 @@
   });
 
   export const updateProviderSchema = z.object({
-    type: z.enum(["anthropic", "google", "openai", "openrouter"], {
-      message: "Type must be one of: anthropic, google, openai, openrouter",
-    }).optional(),
+    type: z
+      .enum(["anthropic", "google", "openai", "openrouter"], {
+        message: "Type must be one of: anthropic, google, openai, openrouter",
+      })
+      .optional(),
     name: z.string().min(1, "Name is required").max(255).optional(),
     apiKey: z.string().min(1, "API key is required").optional(),
     baseUrl: z.string().url().nullable().optional(),
@@ -119,13 +121,38 @@
   // Static model lists per provider (mirrors @gnana/provider-* packages)
   const STATIC_MODELS: Record<ProviderType, ModelInfo[]> = {
     anthropic: [
-      { id: "claude-opus-4-20250514", name: "Claude Opus 4", contextWindow: 200000, maxOutputTokens: 32000 },
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", contextWindow: 200000, maxOutputTokens: 16000 },
-      { id: "claude-haiku-4-20250514", name: "Claude Haiku 4", contextWindow: 200000, maxOutputTokens: 8192 },
+      {
+        id: "claude-opus-4-20250514",
+        name: "Claude Opus 4",
+        contextWindow: 200000,
+        maxOutputTokens: 32000,
+      },
+      {
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet 4",
+        contextWindow: 200000,
+        maxOutputTokens: 16000,
+      },
+      {
+        id: "claude-haiku-4-20250514",
+        name: "Claude Haiku 4",
+        contextWindow: 200000,
+        maxOutputTokens: 8192,
+      },
     ],
     google: [
-      { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", contextWindow: 1048576, maxOutputTokens: 65536 },
-      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", contextWindow: 1048576, maxOutputTokens: 65536 },
+      {
+        id: "gemini-2.5-pro",
+        name: "Gemini 2.5 Pro",
+        contextWindow: 1048576,
+        maxOutputTokens: 65536,
+      },
+      {
+        id: "gemini-2.5-flash",
+        name: "Gemini 2.5 Flash",
+        contextWindow: 1048576,
+        maxOutputTokens: 65536,
+      },
     ],
     openai: [
       { id: "gpt-4.1", name: "GPT-4.1", contextWindow: 1047576, maxOutputTokens: 32768 },

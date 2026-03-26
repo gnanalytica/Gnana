@@ -1,7 +1,14 @@
 import type { Context } from "hono";
 import { auditLogs, type Database } from "@gnana/db";
 
-const SENSITIVE_KEYS = new Set(["apiKey", "password", "secret", "token", "credentials", "passwordHash"]);
+const SENSITIVE_KEYS = new Set([
+  "apiKey",
+  "password",
+  "secret",
+  "token",
+  "credentials",
+  "passwordHash",
+]);
 
 /**
  * Redact sensitive fields in a changes object.
@@ -61,7 +68,9 @@ export async function logAudit(db: Database, params: AuditLogParams): Promise<vo
 /**
  * Helper to build common audit params from a Hono context.
  */
-export function auditContext(c: Context): Pick<AuditLogParams, "workspaceId" | "userId" | "ipAddress" | "userAgent"> {
+export function auditContext(
+  c: Context,
+): Pick<AuditLogParams, "workspaceId" | "userId" | "ipAddress" | "userAgent"> {
   return {
     workspaceId: c.get("workspaceId") as string,
     userId: c.get("userId") as string,

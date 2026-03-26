@@ -177,8 +177,7 @@ const PROVIDER_FACTORIES: Record<string, (apiKey: string, baseUrl?: string) => L
   anthropic: (key) => new AnthropicProvider(key),
   google: (key) => new GoogleProvider(key),
   openai: (key, baseUrl) => new OpenAIProvider(key, baseUrl ? { baseURL: baseUrl } : undefined),
-  openrouter: (key) =>
-    new OpenAIProvider(key, { baseURL: "https://openrouter.ai/api/v1" }),
+  openrouter: (key) => new OpenAIProvider(key, { baseURL: "https://openrouter.ai/api/v1" }),
 };
 
 export async function resolveProviders(
@@ -262,10 +261,14 @@ interface ToolsConfig {
   }>;
 }
 
-type ConnectorFactory = (creds: Record<string, unknown>, config: Record<string, unknown>) => ToolDefinition[];
+type ConnectorFactory = (
+  creds: Record<string, unknown>,
+  config: Record<string, unknown>,
+) => ToolDefinition[];
 
 const CONNECTOR_FACTORIES: Record<string, ConnectorFactory> = {
-  github: (creds) => createGitHubConnector({ token: creds.token as string, owner: creds.owner as string }),
+  github: (creds) =>
+    createGitHubConnector({ token: creds.token as string, owner: creds.owner as string }),
   slack: (creds) => createSlackConnector({ token: creds.token as string }),
   http: (creds, config) =>
     createHttpConnector({
@@ -301,9 +304,7 @@ export async function resolveTools(
     );
 
   // Build lookup: connectorId -> { tools?: string[] }
-  const configByConnector = new Map(
-    toolsConfig.connectors.map((c) => [c.connectorId, c]),
-  );
+  const configByConnector = new Map(toolsConfig.connectors.map((c) => [c.connectorId, c]));
 
   // 2. For each connector, instantiate tools
   for (const row of rows) {
@@ -348,10 +349,7 @@ export class DrizzleDAGRunStore implements DAGRunStore {
   constructor(private db: Database) {}
 
   async updateStatus(runId: string, status: string): Promise<void> {
-    await this.db
-      .update(runs)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(runs.id, runId));
+    await this.db.update(runs).set({ status, updatedAt: new Date() }).where(eq(runs.id, runId));
   }
 
   async updateNodeResult(runId: string, nodeId: string, result: unknown): Promise<void> {
@@ -368,7 +366,9 @@ export class DrizzleDAGRunStore implements DAGRunStore {
     const rows = await this.db
       .select()
       .from(runLogs)
-      .where(and(eq(runLogs.runId, runId), eq(runLogs.stage, nodeId), eq(runLogs.type, "node_result")))
+      .where(
+        and(eq(runLogs.runId, runId), eq(runLogs.stage, nodeId), eq(runLogs.type, "node_result")),
+      )
       .orderBy(runLogs.createdAt)
       .limit(1);
     return rows[0]?.data ?? null;
@@ -382,10 +382,7 @@ export class DrizzleDAGRunStore implements DAGRunStore {
   }
 
   async updateError(runId: string, error: string): Promise<void> {
-    await this.db
-      .update(runs)
-      .set({ error, updatedAt: new Date() })
-      .where(eq(runs.id, runId));
+    await this.db.update(runs).set({ error, updatedAt: new Date() }).where(eq(runs.id, runId));
   }
 }
 ```
@@ -423,14 +420,16 @@ export function runRoutes(
     }
     const run = runRows[0]!;
     if (run.status !== "awaiting_approval") {
-      return errorResponse(c, 409, "CONFLICT", `Run is in '${run.status}' status, not 'awaiting_approval'`);
+      return errorResponse(
+        c,
+        409,
+        "CONFLICT",
+        `Run is in '${run.status}' status, not 'awaiting_approval'`,
+      );
     }
 
     // 2. Update status to approved
-    await db
-      .update(runs)
-      .set({ status: "approved", updatedAt: new Date() })
-      .where(eq(runs.id, id));
+    await db.update(runs).set({ status: "approved", updatedAt: new Date() }).where(eq(runs.id, id));
     await events.emit("run:approved", { runId: id });
 
     // 3. Enqueue a resume job
@@ -627,7 +626,11 @@ export function createGnanaServer(config: GnanaServerConfig) {
   const cronManager = new CronManager(db, queue);
 
   return {
-    app, db, events, queue, cronManager,
+    app,
+    db,
+    events,
+    queue,
+    cronManager,
     start() {
       queue.start();
       cronManager.start(); // non-blocking, logs on its own
@@ -714,9 +717,7 @@ export function webhookRoutes(db: Database, queue: JobQueue) {
       }
 
       const rawBody = await c.req.text();
-      const expected = createHmac("sha256", webhookTrigger.secret)
-        .update(rawBody)
-        .digest("hex");
+      const expected = createHmac("sha256", webhookTrigger.secret).update(rawBody).digest("hex");
 
       const expectedBuf = Buffer.from(`sha256=${expected}`, "utf8");
       const receivedBuf = Buffer.from(signature, "utf8");
@@ -865,10 +866,7 @@ if (attempt < job.maxAttempts) {
     .where(eq(jobs.id, job.id));
   jobLog.info({ jobId: job.id, attempt, retryAfter }, "Job scheduled for retry");
 } else {
-  await this.db
-    .update(jobs)
-    .set({ status: "failed", error: message })
-    .where(eq(jobs.id, job.id));
+  await this.db.update(jobs).set({ status: "failed", error: message }).where(eq(jobs.id, job.id));
 }
 ```
 
@@ -876,19 +874,19 @@ For the initial implementation, failed jobs reset to `pending` and the queue re-
 
 ## Files to Create/Modify
 
-| Action | File | Description |
-|--------|------|-------------|
-| Create | `packages/server/src/execution/dag-run-store.ts` | `DrizzleDAGRunStore` implementing `DAGRunStore` |
-| Create | `packages/server/src/execution/resolve-providers.ts` | Load workspace providers, decrypt keys, build `LLMRouterImpl` |
-| Create | `packages/server/src/execution/resolve-tools.ts` | Load connectors, decrypt creds, call factories, build `ToolExecutorImpl` |
-| Create | `packages/server/src/execution/run-handler.ts` | `createRunHandler()` that builds `DAGContext` and calls `executeDAG()` |
-| Create | `packages/server/src/triggers/cron-manager.ts` | `CronManager` class using `node-cron` |
-| Create | `packages/server/src/triggers/webhook-route.ts` | `POST /api/webhooks/:agentId` Hono route |
-| Modify | `packages/server/src/index.ts` | Replace stub handler, add cron/webhook/log persistence |
-| Modify | `packages/server/src/routes/runs.ts` | Add `POST /:id/resume` endpoint |
-| Modify | `packages/server/src/routes/agents.ts` | Call `cronManager.reload(agentId)` on update |
-| Modify | `packages/server/src/start.ts` | No changes needed (cron starts inside `createGnanaServer.start()`) |
-| Modify | `packages/server/package.json` | Add `node-cron` + `@types/node-cron` |
+| Action | File                                                 | Description                                                              |
+| ------ | ---------------------------------------------------- | ------------------------------------------------------------------------ |
+| Create | `packages/server/src/execution/dag-run-store.ts`     | `DrizzleDAGRunStore` implementing `DAGRunStore`                          |
+| Create | `packages/server/src/execution/resolve-providers.ts` | Load workspace providers, decrypt keys, build `LLMRouterImpl`            |
+| Create | `packages/server/src/execution/resolve-tools.ts`     | Load connectors, decrypt creds, call factories, build `ToolExecutorImpl` |
+| Create | `packages/server/src/execution/run-handler.ts`       | `createRunHandler()` that builds `DAGContext` and calls `executeDAG()`   |
+| Create | `packages/server/src/triggers/cron-manager.ts`       | `CronManager` class using `node-cron`                                    |
+| Create | `packages/server/src/triggers/webhook-route.ts`      | `POST /api/webhooks/:agentId` Hono route                                 |
+| Modify | `packages/server/src/index.ts`                       | Replace stub handler, add cron/webhook/log persistence                   |
+| Modify | `packages/server/src/routes/runs.ts`                 | Add `POST /:id/resume` endpoint                                          |
+| Modify | `packages/server/src/routes/agents.ts`               | Call `cronManager.reload(agentId)` on update                             |
+| Modify | `packages/server/src/start.ts`                       | No changes needed (cron starts inside `createGnanaServer.start()`)       |
+| Modify | `packages/server/package.json`                       | Add `node-cron` + `@types/node-cron`                                     |
 
 ## Sequence Diagrams
 
@@ -957,9 +955,9 @@ External Service    API Server         Job Queue         DAG Executor
 
 New packages:
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `node-cron` | `^3.0.3` | Cron scheduling |
+| Package            | Version   | Purpose                          |
+| ------------------ | --------- | -------------------------------- |
+| `node-cron`        | `^3.0.3`  | Cron scheduling                  |
 | `@types/node-cron` | `^3.0.11` | TypeScript types (devDependency) |
 
 Existing packages used (already in `@gnana/server`'s dependencies or workspace):

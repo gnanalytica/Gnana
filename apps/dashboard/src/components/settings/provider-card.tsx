@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Star,
-  Wifi,
-  Loader2,
-} from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Star, Wifi, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -182,9 +175,7 @@ export function ProviderCard({
           )}
 
           {/* Masked API key */}
-          <div className="mt-3 text-xs font-mono text-muted-foreground">
-            {provider.apiKey}
-          </div>
+          <div className="mt-3 text-xs font-mono text-muted-foreground">{provider.apiKey}</div>
         </CardContent>
       </Card>
 
@@ -194,8 +185,8 @@ export function ProviderCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete &ldquo;{provider.name}&rdquo;?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the provider and its API key. Agents using this
-              provider will fail until a new one is configured.
+              This will remove the provider and its API key. Agents using this provider will fail
+              until a new one is configured.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

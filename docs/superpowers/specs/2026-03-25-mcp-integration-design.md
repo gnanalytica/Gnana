@@ -98,7 +98,7 @@ export class MCPClient {
       } catch {
         if (attempt === MCPClient.MAX_RETRIES) {
           throw new Error(
-            `Failed to reconnect to MCP server "${this.config.name}" after ${MCPClient.MAX_RETRIES} attempts`
+            `Failed to reconnect to MCP server "${this.config.name}" after ${MCPClient.MAX_RETRIES} attempts`,
           );
         }
       }
@@ -183,6 +183,7 @@ function sleep(ms: number): Promise<void> {
 ```
 
 **Key decisions:**
+
 - Namespacing uses underscores: `mcp_servername_toolname`. This avoids confusion with the double-underscore `__` separator used by the existing `MCPClientAdapter` (which we are replacing), and is safe for LLM tool-use formats that may treat double underscores specially.
 - The `handler` closure captures the MCPClient instance and the raw tool name, so once registered in ToolExecutor, calling `execute("mcp_filesystem_readFile", input)` transparently routes to the right MCP server.
 - `discoverTools()` is called during `connect()` so tools are always available immediately after connection.
@@ -196,7 +197,7 @@ import { MCPClient, type MCPClientStatus } from "./client.js";
 import type { MCPServerConfig, ToolDefinition } from "@gnana/core";
 
 export interface MCPServerInfo {
-  serverId: string;        // connector ID from database
+  serverId: string; // connector ID from database
   config: MCPServerConfig;
   status: MCPClientStatus;
 }
@@ -282,6 +283,7 @@ export class MCPManager {
 ```
 
 **Key decisions:**
+
 - The MCPManager does not access the database directly. Server configs are passed in from the caller (the run executor or the API route). This keeps the MCP package pure — no DB dependency.
 - Server IDs correspond to connector UUIDs from the `connectors` table.
 - The manager is stateful — connections persist between runs. If agent A and agent B both use the same MCP server connector, they share the connection.
@@ -325,10 +327,10 @@ Add `args` to `MCPServerConfig`:
 export interface MCPServerConfig {
   name: string;
   transport: "stdio" | "http";
-  command?: string;      // stdio: the command to spawn
-  args?: string[];       // stdio: command arguments
-  url?: string;          // http: server URL
-  env?: Record<string, string>;  // environment variables for the server process
+  command?: string; // stdio: the command to spawn
+  args?: string[]; // stdio: command arguments
+  url?: string; // http: server URL
+  env?: Record<string, string>; // environment variables for the server process
 }
 ```
 
@@ -545,6 +547,7 @@ No changes needed.
 The install dialog in `apps/dashboard/src/components/connectors/install-dialog.tsx` already has MCP fields (transport select, URL/command input). Enhance it:
 
 **Add these fields for MCP:**
+
 - Server name input (used for tool namespacing, defaults to connector name)
 - Args input (for stdio, comma-separated or multi-line)
 - Env vars input (key=value pairs, one per line)
@@ -552,76 +555,80 @@ The install dialog in `apps/dashboard/src/components/connectors/install-dialog.t
 **Updated MCP section in install dialog:**
 
 ```tsx
-{app.id === "mcp-server" && (
-  <>
-    <div className="space-y-2">
-      <Label htmlFor="mcp-name">Server Name</Label>
-      <Input
-        id="mcp-name"
-        placeholder="filesystem"
-        value={mcpName}
-        onChange={(e) => setMcpName(e.target.value)}
-      />
-      <p className="text-xs text-muted-foreground">
-        Used for tool namespacing: mcp_{"{name}"}_toolName
-      </p>
-    </div>
-    <div className="space-y-2">
-      <Label>Transport</Label>
-      <Select value={mcpTransport} onValueChange={setMcpTransport}>
-        <SelectTrigger><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="http">HTTP (Streamable HTTP)</SelectItem>
-          <SelectItem value="stdio">Stdio (local process)</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    {mcpTransport === "http" && (
+{
+  app.id === "mcp-server" && (
+    <>
       <div className="space-y-2">
-        <Label htmlFor="mcp-url">Server URL</Label>
+        <Label htmlFor="mcp-name">Server Name</Label>
         <Input
-          id="mcp-url"
-          placeholder="http://localhost:3001/mcp"
-          value={mcpUrl}
-          onChange={(e) => setMcpUrl(e.target.value)}
+          id="mcp-name"
+          placeholder="filesystem"
+          value={mcpName}
+          onChange={(e) => setMcpName(e.target.value)}
         />
+        <p className="text-xs text-muted-foreground">
+          Used for tool namespacing: mcp_{"{name}"}_toolName
+        </p>
       </div>
-    )}
-    {mcpTransport === "stdio" && (
-      <>
+      <div className="space-y-2">
+        <Label>Transport</Label>
+        <Select value={mcpTransport} onValueChange={setMcpTransport}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="http">HTTP (Streamable HTTP)</SelectItem>
+            <SelectItem value="stdio">Stdio (local process)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {mcpTransport === "http" && (
         <div className="space-y-2">
-          <Label htmlFor="mcp-command">Command</Label>
+          <Label htmlFor="mcp-url">Server URL</Label>
           <Input
-            id="mcp-command"
-            placeholder="npx @modelcontextprotocol/server-filesystem"
-            value={mcpCommand}
-            onChange={(e) => setMcpCommand(e.target.value)}
+            id="mcp-url"
+            placeholder="http://localhost:3001/mcp"
+            value={mcpUrl}
+            onChange={(e) => setMcpUrl(e.target.value)}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="mcp-args">Arguments (one per line)</Label>
-          <Textarea
-            id="mcp-args"
-            placeholder="/path/to/allowed/directory"
-            value={mcpArgs}
-            onChange={(e) => setMcpArgs(e.target.value)}
-            rows={3}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="mcp-env">Environment Variables (KEY=VALUE, one per line)</Label>
-          <Textarea
-            id="mcp-env"
-            placeholder="API_KEY=sk-123&#10;DEBUG=true"
-            value={mcpEnv}
-            onChange={(e) => setMcpEnv(e.target.value)}
-            rows={3}
-          />
-        </div>
-      </>
-    )}
-  </>
-)}
+      )}
+      {mcpTransport === "stdio" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="mcp-command">Command</Label>
+            <Input
+              id="mcp-command"
+              placeholder="npx @modelcontextprotocol/server-filesystem"
+              value={mcpCommand}
+              onChange={(e) => setMcpCommand(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mcp-args">Arguments (one per line)</Label>
+            <Textarea
+              id="mcp-args"
+              placeholder="/path/to/allowed/directory"
+              value={mcpArgs}
+              onChange={(e) => setMcpArgs(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mcp-env">Environment Variables (KEY=VALUE, one per line)</Label>
+            <Textarea
+              id="mcp-env"
+              placeholder="API_KEY=sk-123&#10;DEBUG=true"
+              value={mcpEnv}
+              onChange={(e) => setMcpEnv(e.target.value)}
+              rows={3}
+            />
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 ```
 
 **Updated buildPayload for MCP:**
@@ -669,7 +676,11 @@ export interface MCPConfigFormProps {
     env?: Record<string, string>;
   };
   onSave: (config: MCPConfigFormData) => Promise<void>;
-  onTest: () => Promise<{ success: boolean; message: string; tools?: { name: string; description: string }[] }>;
+  onTest: () => Promise<{
+    success: boolean;
+    message: string;
+    tools?: { name: string; description: string }[];
+  }>;
 }
 
 export interface MCPConfigFormData {
@@ -683,6 +694,7 @@ export interface MCPConfigFormData {
 ```
 
 This form shows:
+
 - Server name input
 - Transport select (stdio / HTTP)
 - Transport-specific fields (command + args + env for stdio, URL for HTTP)
@@ -712,7 +724,7 @@ Returns:
 {
   connected: boolean;
   toolCount: number;
-  lastConnected: string | null;  // ISO timestamp
+  lastConnected: string | null; // ISO timestamp
   error: string | null;
 }
 ```
@@ -735,6 +747,7 @@ interface AgentToolsConfig {
 ```
 
 The agent builder UI shows:
+
 - A list of installed connectors (non-MCP) with checkboxes
 - A list of installed MCP server connectors with checkboxes + expandable tool list
 - Selected MCP servers show their discovered tools (read from `connector_tools`)
@@ -743,34 +756,34 @@ The agent builder UI shows:
 
 ### Create
 
-| File | Purpose |
-|------|---------|
-| `packages/mcp/src/client.ts` | MCPClient class — single server connection, transport, tool discovery |
-| `packages/mcp/src/manager.ts` | MCPManager — multi-server lifecycle management |
-| `packages/mcp/src/types.ts` | MCPServerRecord and MCP-specific types |
-| `packages/server/src/execution/resolve-tools.ts` | Tool resolution: connector tools + MCP tools -> ToolExecutor |
-| `apps/dashboard/src/components/connectors/mcp-config-form.tsx` | Reusable MCP configuration form component |
+| File                                                           | Purpose                                                               |
+| -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `packages/mcp/src/client.ts`                                   | MCPClient class — single server connection, transport, tool discovery |
+| `packages/mcp/src/manager.ts`                                  | MCPManager — multi-server lifecycle management                        |
+| `packages/mcp/src/types.ts`                                    | MCPServerRecord and MCP-specific types                                |
+| `packages/server/src/execution/resolve-tools.ts`               | Tool resolution: connector tools + MCP tools -> ToolExecutor          |
+| `apps/dashboard/src/components/connectors/mcp-config-form.tsx` | Reusable MCP configuration form component                             |
 
 ### Modify
 
-| File | Change |
-|------|--------|
-| `packages/mcp/src/index.ts` | Replace MCPClientAdapter with new barrel exports |
-| `packages/core/src/types.ts` | Add `args?: string[]` to MCPServerConfig |
-| `packages/server/src/index.ts` | Instantiate MCPManager, pass to run executor, shutdown on SIGTERM |
-| `packages/server/src/routes/connectors.ts` | Add MCP test case, `/refresh-tools` endpoint, `/status` endpoint |
-| `apps/dashboard/src/components/connectors/install-dialog.tsx` | Add server name, args, env fields for MCP |
-| `apps/dashboard/src/components/connectors/connector-card.tsx` | Show MCP status, tool count, reconnect button |
+| File                                                          | Change                                                            |
+| ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/mcp/src/index.ts`                                   | Replace MCPClientAdapter with new barrel exports                  |
+| `packages/core/src/types.ts`                                  | Add `args?: string[]` to MCPServerConfig                          |
+| `packages/server/src/index.ts`                                | Instantiate MCPManager, pass to run executor, shutdown on SIGTERM |
+| `packages/server/src/routes/connectors.ts`                    | Add MCP test case, `/refresh-tools` endpoint, `/status` endpoint  |
+| `apps/dashboard/src/components/connectors/install-dialog.tsx` | Add server name, args, env fields for MCP                         |
+| `apps/dashboard/src/components/connectors/connector-card.tsx` | Show MCP status, tool count, reconnect button                     |
 
 ### No Changes Needed
 
-| File | Reason |
-|------|--------|
-| `apps/dashboard/src/app/(dashboard)/connectors/store/page.tsx` | MCP Server card already exists |
-| `packages/core/src/tool-executor.ts` | No changes — MCP tools are standard ToolDefinitions |
-| `packages/core/src/dag-executor.ts` | No changes — uses ToolExecutor interface, agnostic to tool source |
-| `packages/core/src/pipeline.ts` | No changes — same reason |
-| `packages/db/src/schema.ts` | No schema changes — `connectors` and `connector_tools` tables already support MCP |
+| File                                                           | Reason                                                                            |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `apps/dashboard/src/app/(dashboard)/connectors/store/page.tsx` | MCP Server card already exists                                                    |
+| `packages/core/src/tool-executor.ts`                           | No changes — MCP tools are standard ToolDefinitions                               |
+| `packages/core/src/dag-executor.ts`                            | No changes — uses ToolExecutor interface, agnostic to tool source                 |
+| `packages/core/src/pipeline.ts`                                | No changes — same reason                                                          |
+| `packages/db/src/schema.ts`                                    | No schema changes — `connectors` and `connector_tools` tables already support MCP |
 
 ## Data Flow
 
