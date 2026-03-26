@@ -115,6 +115,19 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
 
           for await (const chunk of stream) {
             switch (chunk.type) {
+              case "thinking":
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === streamMsgId
+                      ? { ...m, thinking: (m.thinking ?? "") + chunk.content }
+                      : m,
+                  ),
+                );
+                break;
+
+              case "thinking_complete":
+                break;
+
               case "text":
                 accumulatedText += chunk.content;
                 setMessages((prev) =>
@@ -275,6 +288,16 @@ export const CanvasChatPanel = forwardRef<CanvasChatPanelRef, CanvasChatPanelPro
                         : "bg-muted text-foreground"
                     }`}
                   >
+                    {msg.thinking && (
+                      <details className="mb-2 text-xs">
+                        <summary className="cursor-pointer text-muted-foreground/70 hover:text-muted-foreground select-none">
+                          💭 Thinking...
+                        </summary>
+                        <div className="mt-1 pl-3 border-l-2 border-muted-foreground/20 text-muted-foreground/60 whitespace-pre-wrap">
+                          {msg.thinking}
+                        </div>
+                      </details>
+                    )}
                     <p className="whitespace-pre-wrap">{msg.content}</p>
 
                     {/* Changes list */}

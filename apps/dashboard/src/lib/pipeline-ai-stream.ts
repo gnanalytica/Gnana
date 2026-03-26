@@ -2,6 +2,8 @@ import type { PipelineSpec } from "@/types/pipeline";
 
 export type StreamChunk =
   | { type: "text"; content: string }
+  | { type: "thinking"; content: string }
+  | { type: "thinking_complete"; content: string }
   | { type: "question"; content: string }
   | {
       type: "pipeline";

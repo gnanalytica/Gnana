@@ -47,6 +47,8 @@ export interface ChatMessage {
   content: string;
   /** If the assistant generated/modified a pipeline, attach it */
   pipelineSpec?: PipelineSpec;
+  /** Model's thinking/reasoning process (streamed separately) */
+  thinking?: string;
 }
 
 /** Template used in chat onboarding */

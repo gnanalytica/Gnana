@@ -69,11 +69,21 @@ interface ErrorEvent {
   message: string;
 }
 
+interface ThinkingEvent {
+  type: "thinking";
+  content: string;
+}
+
+interface ThinkingCompleteEvent {
+  type: "thinking_complete";
+  content: string;
+}
+
 interface DoneEvent {
   type: "done";
 }
 
-type SSEEvent = TextEvent | QuestionEvent | PipelineEvent | ErrorEvent | DoneEvent;
+type SSEEvent = TextEvent | QuestionEvent | PipelineEvent | ErrorEvent | ThinkingEvent | ThinkingCompleteEvent | DoneEvent;
 
 // Provider row type (from DB query)
 interface ProviderRow {
@@ -512,11 +522,12 @@ async function callOpenAINonStreaming(
   return data.choices?.[0]?.message?.content ?? "No response from AI.";
 }
 
-async function callGoogleNonStreaming(
+async function callGoogleStreaming(
   apiKey: string,
   systemPrompt: string,
   message: string,
   history: ChatMessage[],
+  sendEvent: (data: string) => Promise<void>,
 ): Promise<string> {
   const contents = [
     ...history.map((m) => ({
@@ -527,13 +538,16 @@ async function callGoogleNonStreaming(
   ];
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents,
+        generationConfig: {
+          thinkingConfig: { thinkingBudget: 2048 },
+        },
       }),
     },
   );
@@ -543,12 +557,58 @@ async function callGoogleNonStreaming(
     throw new Error(`Google API error (${res.status}): ${errorBody}`);
   }
 
-  const data = (await res.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response from AI.";
+  let fullText = "";
+  let thinkingText = "";
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop()!;
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6).trim();
+      if (!jsonStr) continue;
+
+      try {
+        const chunk = JSON.parse(jsonStr) as {
+          candidates?: Array<{
+            content?: {
+              parts?: Array<{ text?: string; thought?: boolean }>;
+            };
+          }>;
+        };
+
+        const parts = chunk.candidates?.[0]?.content?.parts ?? [];
+        for (const part of parts) {
+          if (!part.text) continue;
+          if (part.thought) {
+            // Stream thinking tokens
+            thinkingText += part.text;
+            await sendEvent(sseData({ type: "thinking", content: part.text }));
+          } else {
+            // Stream response tokens
+            fullText += part.text;
+            await sendEvent(sseData({ type: "text", content: part.text }));
+          }
+        }
+      } catch {
+        // Skip malformed JSON chunks
+      }
+    }
+  }
+
+  if (thinkingText) {
+    await sendEvent(sseData({ type: "thinking_complete", content: thinkingText }));
+  }
+
+  return fullText || "No response from AI.";
 }
 
 // ---------------------------------------------------------------------------
@@ -719,8 +779,43 @@ export function chatRoutes(db: Database) {
               await sendEvent(sseData({ type: "question", content: parsed.textBeforeJson }));
             }
           }
+        } else if (resolvedProvider.type === "google") {
+          // Google Gemini — true streaming with thinking support
+          const fullText = await callGoogleStreaming(
+            resolvedProvider.apiKey,
+            systemPrompt,
+            message,
+            history,
+            sendEvent,
+          );
+
+          // Parse the accumulated response for pipeline spec
+          const parsed = parseAIResponse(fullText);
+
+          if (parsed.pipeline) {
+            const { suggestions = [], changes = [], ...specFields } = parsed.pipeline;
+            const spec: PipelineSpec = {
+              name: specFields.name,
+              description: specFields.description,
+              systemPrompt: specFields.systemPrompt,
+              nodes: specFields.nodes ?? [],
+              edges: specFields.edges ?? [],
+            };
+
+            await sendEvent(
+              sseData({
+                type: "pipeline",
+                spec,
+                message: parsed.textBeforeJson || "Here's your pipeline.",
+                suggestions,
+                changes,
+              }),
+            );
+          } else if (parsed.textBeforeJson && !fullText.includes("```json")) {
+            await sendEvent(sseData({ type: "question", content: parsed.textBeforeJson }));
+          }
         } else {
-          // Non-streaming providers (OpenAI, Google) — call API then simulate streaming
+          // Non-streaming providers (OpenAI) — call API then simulate streaming
           let fullText: string;
 
           if (resolvedProvider.type === "openai") {
@@ -730,13 +825,6 @@ export function chatRoutes(db: Database) {
               message,
               history,
               resolvedProvider.baseUrl,
-            );
-          } else if (resolvedProvider.type === "google") {
-            fullText = await callGoogleNonStreaming(
-              resolvedProvider.apiKey,
-              systemPrompt,
-              message,
-              history,
             );
           } else {
             await sendEvent(
