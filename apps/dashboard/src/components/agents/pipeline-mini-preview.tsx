@@ -118,7 +118,7 @@ function layoutNodes(spec: PipelineSpec) {
       laid.push({
         id: n.id,
         type: n.type,
-        label: (n.data?.label as string) ?? (n.data?.name as string) ?? n.type,
+        label: (n.data?.label as string) ?? (n.data?.name as string) ?? n.type ?? "node",
         x,
         y,
         depth: d,
@@ -234,7 +234,7 @@ export function PipelineMiniPreview({ spec, onOpenCanvas }: PipelineMiniPreviewP
                   fontSize={9}
                   fontFamily="inherit"
                 >
-                  {n.label.length > 10 ? n.label.slice(0, 9) + "\u2026" : n.label}
+                  {(n.label ?? "").length > 10 ? (n.label ?? "").slice(0, 9) + "\u2026" : n.label ?? ""}
                 </text>
               </g>
             );
