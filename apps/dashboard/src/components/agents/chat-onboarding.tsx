@@ -415,43 +415,53 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
                     )}
                     {/* Structured question options */}
                     {msg.options && msg.options.length > 0 && !isGenerating && (
-                      <div className="mt-3 space-y-1.5">
+                      <div className="mt-3 space-y-2">
                         {msg.questionType === "yes-no" ? (
-                          <div className="flex gap-2">
-                            {msg.options.map((opt) => (
-                              <Button
-                                key={opt.value}
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleOptionSelect(opt.label)}
-                              >
-                                {opt.label}
-                              </Button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="grid grid-cols-2 gap-2">
                             {msg.options.map((opt) => (
                               <button
                                 key={opt.value}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => handleOptionSelect(opt.label)}
+                                className="group relative flex items-center justify-center gap-2 rounded-lg border-2 border-border bg-background px-4 py-3 text-sm font-medium transition-all hover:border-primary hover:bg-primary/5 hover:shadow-sm active:scale-[0.98]"
                               >
+                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-muted-foreground/30 text-[10px] font-bold text-muted-foreground/50 group-hover:border-primary group-hover:text-primary transition-colors">
+                                  {opt.value === "yes" || opt.label.toLowerCase().includes("yes") ? "Y" : "N"}
+                                </span>
                                 {opt.label}
-                                {opt.description && (
-                                  <span className="text-muted-foreground font-normal">
-                                    — {opt.description}
-                                  </span>
-                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className={`grid gap-2 ${msg.options.length <= 3 ? "grid-cols-1" : "grid-cols-2"}`}>
+                            {msg.options.map((opt, optIdx) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => handleOptionSelect(opt.label)}
+                                className="group relative flex items-start gap-3 rounded-lg border-2 border-border bg-background p-3 text-left transition-all hover:border-primary hover:bg-primary/5 hover:shadow-sm active:scale-[0.98]"
+                              >
+                                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/30 text-[10px] font-bold text-muted-foreground/50 group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                  {String.fromCharCode(65 + optIdx)}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-medium leading-tight">{opt.label}</div>
+                                  {opt.description && (
+                                    <div className="mt-0.5 text-xs text-muted-foreground leading-snug">
+                                      {opt.description}
+                                    </div>
+                                  )}
+                                </div>
                               </button>
                             ))}
                           </div>
                         )}
                         {msg.allowCustom && (
-                          <p className="text-[10px] text-muted-foreground/50 mt-1">
-                            Or type your own answer below
-                          </p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <div className="h-px flex-1 bg-border/50" />
+                            <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                              or type your own
+                            </span>
+                            <div className="h-px flex-1 bg-border/50" />
+                          </div>
                         )}
                       </div>
                     )}
