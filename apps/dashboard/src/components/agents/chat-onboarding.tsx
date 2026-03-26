@@ -5,11 +5,124 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Hexagon, Send, Loader2, RotateCcw, AlertCircle } from "lucide-react";
+import { Hexagon, Send, Loader2, RotateCcw, AlertCircle, ChevronDown, Brain, Zap, MessageSquare } from "lucide-react";
 import { TemplateGrid } from "./template-grid";
 import { PipelineSummaryCard } from "./pipeline-summary-card";
 import type { PipelineSpec, ChatMessage } from "@/types/pipeline";
 import { streamPipelineResponse } from "@/lib/pipeline-ai-stream";
+
+/** Extract a short summary from a longer message — first sentence or first 100 chars */
+function extractSummary(text: string): string {
+  const firstSentence = text.match(/^[^.!?\n]+[.!?]/);
+  if (firstSentence && firstSentence[0].length <= 150) return firstSentence[0];
+  if (text.length <= 100) return text;
+  return text.slice(0, 100).replace(/\s+\S*$/, "") + "...";
+}
+
+/** Count key info points in a message */
+function extractKeyPoints(text: string): string[] {
+  const points: string[] = [];
+  const lines = text.split("\n").filter((l) => l.trim());
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("-") || trimmed.startsWith("•") || trimmed.match(/^\d+\./)) {
+      points.push(trimmed.replace(/^[-•]\s*/, "").replace(/^\d+\.\s*/, ""));
+    }
+  }
+  return points.slice(0, 5);
+}
+
+/** Smart summary view for assistant messages — shows condensed view with expand */
+function AssistantMessageSummary({ msg, isStreaming }: { msg: ChatMessage; isStreaming: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const summary = extractSummary(msg.content);
+  const keyPoints = extractKeyPoints(msg.content);
+  const hasThinking = !!msg.thinking;
+  const thinkingWordCount = msg.thinking ? msg.thinking.split(/\s+/).length : 0;
+
+  if (isStreaming) {
+    // While streaming, show a live indicator with truncated content
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Responding...</span>
+        </div>
+        <p className="whitespace-pre-wrap text-sm">{msg.content.slice(-200)}</p>
+      </div>
+    );
+  }
+
+  if (expanded) {
+    return (
+      <div className="space-y-2">
+        <button
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        >
+          <ChevronDown className="h-3 w-3 rotate-180" />
+          Collapse
+        </button>
+        {hasThinking && (
+          <details className="text-xs">
+            <summary className="cursor-pointer text-muted-foreground/70 hover:text-muted-foreground select-none flex items-center gap-1">
+              <Brain className="h-3 w-3" />
+              Reasoning ({thinkingWordCount} words)
+            </summary>
+            <div className="mt-1 pl-4 border-l-2 border-muted-foreground/20 text-muted-foreground/60 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+              {msg.thinking}
+            </div>
+          </details>
+        )}
+        <p className="whitespace-pre-wrap">{msg.content}</p>
+      </div>
+    );
+  }
+
+  // Collapsed: infographic summary
+  return (
+    <div className="space-y-2">
+      {/* Summary line */}
+      <p className="text-sm">{summary}</p>
+
+      {/* Key points as compact chips */}
+      {keyPoints.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {keyPoints.map((point, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 rounded-md bg-background/50 border border-border/50 px-2 py-0.5 text-[11px] text-muted-foreground"
+            >
+              <Zap className="h-2.5 w-2.5 text-primary/60" />
+              {point.length > 50 ? point.slice(0, 50) + "..." : point}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Metadata bar */}
+      <div className="flex items-center gap-3 pt-1">
+        {hasThinking && (
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+            <Brain className="h-2.5 w-2.5" />
+            {thinkingWordCount}w reasoning
+          </span>
+        )}
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+          <MessageSquare className="h-2.5 w-2.5" />
+          {msg.content.split(/\s+/).length}w response
+        </span>
+        <button
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-0.5 text-[10px] text-primary/70 hover:text-primary transition-colors ml-auto"
+        >
+          <ChevronDown className="h-3 w-3" />
+          Show full response
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /** Find the last index matching a predicate (ES2023-safe polyfill). */
 function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
@@ -272,7 +385,7 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
       {messages.length > 0 && (
         <ScrollArea className="flex-1 w-full mb-4" ref={scrollRef}>
           <div className="space-y-4 py-4">
-            {messages.map((msg) => {
+            {messages.map((msg, msgIndex) => {
               const isError = msg.id.startsWith("error-");
 
               return (
@@ -295,17 +408,11 @@ export function ChatOnboarding({ onOpenCanvas }: ChatOnboardingProps) {
                         <span className="font-medium text-xs">Error</span>
                       </div>
                     )}
-                    {msg.thinking && (
-                      <details className="mb-2 text-xs">
-                        <summary className="cursor-pointer text-muted-foreground/70 hover:text-muted-foreground select-none flex items-center gap-1">
-                          <span className="text-[10px]">💭</span> Thinking...
-                        </summary>
-                        <div className="mt-1 pl-4 border-l-2 border-muted-foreground/20 text-muted-foreground/60 whitespace-pre-wrap">
-                          {msg.thinking}
-                        </div>
-                      </details>
+                    {msg.role === "assistant" && !isError && msg.content.length > 120 ? (
+                      <AssistantMessageSummary msg={msg} isStreaming={isGenerating && msgIndex === messages.length - 1} />
+                    ) : (
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
                     )}
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
                     {/* Structured question options */}
                     {msg.options && msg.options.length > 0 && !isGenerating && (
                       <div className="mt-3 space-y-1.5">
